@@ -29,7 +29,7 @@ class User extends Authenticatable
     use HasFiles;          // For avatar uploads (from our reusable trait)
     use HasRoles;          // Spatie Permission
     use Notifiable;        // For notifications
-    use SoftDeletes;
+    // use SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -79,6 +79,11 @@ class User extends Authenticatable
     // RELATIONSHIPS
     // ─────────────────────────────────────────────
 
+
+    public function userInfo()
+    {
+        return $this->hasOne(\App\Models\UserInfo::class);
+    }
     /**
      * Tenants owned by this user (for tenant_owner type).
      */
