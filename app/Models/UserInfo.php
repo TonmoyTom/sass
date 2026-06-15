@@ -7,20 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class UserInfo extends Model
 {
     protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'avatar',
-        'password',
-        'user_type',
-        'status',
-        'last_login_at',
-        'last_login_ip',
+        'user_id', 'first_name', 'last_name', 'bio',
+        'country', 'city', 'postal_code', 'nt_id', 'tx_id',
+        'facebook', 'twitter', 'lnkedin', 'instagram',
     ];
-
 
     public function user()
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->belongsTo(User::class);
     }
 }

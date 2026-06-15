@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\SellerController;
+use App\Http\Controllers\Admin\TenantController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Seller\CommissionController;
+use App\Http\Controllers\Seller\ModuleRequestController;
+use App\Http\Controllers\Seller\ReferralController;
+use App\Http\Controllers\Seller\WalletController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,7 +36,7 @@ use Inertia\Inertia;
 // ─────────────────────────────────────────────
 
 Route::get('/', function () {
-   
+
     return Inertia::render('Welcome');
 })->name('home');
 
@@ -65,11 +74,16 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Profile management (for any logged-in user)
-    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])
+    Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
-    Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])
+    Route::patch('/profile', [ProfileController::class, 'update'])
         ->name('profile.update');
-    Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])
+    Route::patch('/profile/address', [ProfileController::class, 'updateAddress'])
+        ->name('profile.address.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy']);
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])
+        ->name('profile.avatar.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
         ->name('profile.destroy');
 
     // Generic dashboard - redirects based on user type
@@ -88,28 +102,31 @@ Route::middleware(['auth', 'verified', 'super_admin'])
     ->group(function () {
 
         // Dashboard
-        Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])
+        Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
         // Tenants management
-        // Route::resource('tenants', \App\Http\Controllers\Admin\TenantController::class);
-        // Route::post('/tenants/{tenant}/suspend', [\App\Http\Controllers\Admin\TenantController::class, 'suspend'])
-        //     ->name('tenants.suspend');
-        // Route::post('/tenants/{tenant}/reactivate', [\App\Http\Controllers\Admin\TenantController::class, 'reactivate'])
-        //     ->name('tenants.reactivate');
-        // Route::post('/tenants/{tenant}/impersonate', [\App\Http\Controllers\Admin\TenantController::class, 'impersonate'])
-        //     ->name('tenants.impersonate');
+        Route::resource('tenants', TenantController::class);
+        Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
+        Route::post('/tenants/{tenant}/reactivate', [TenantController::class, 'reactivate'])->name('tenants.reactivate');
+        Route::post('/tenants/{tenant}/impersonate', [TenantController::class, 'impersonate'])->name('tenants.impersonate');
 
         // // Sellers management
-        // Route::resource('sellers', \App\Http\Controllers\Admin\SellerController::class);
-        // Route::post('/sellers/{seller}/approve', [\App\Http\Controllers\Admin\SellerController::class, 'approve'])
-        //     ->name('sellers.approve');
-        // Route::post('/sellers/{seller}/reject', [\App\Http\Controllers\Admin\SellerController::class, 'reject'])
-        //     ->name('sellers.reject');
-        // Route::post('/sellers/{seller}/suspend', [\App\Http\Controllers\Admin\SellerController::class, 'suspend'])
-        //     ->name('sellers.suspend');
+        Route::resource('sellers', SellerController::class);
+        Route::post('/sellers/{seller}/approve', [SellerController::class, 'approve'])
+            ->name('sellers.approve');
+        Route::post('/sellers/{seller}/reject', [SellerController::class, 'reject'])
+            ->name('sellers.reject');
+        Route::post('/sellers/{seller}/suspend', [SellerController::class, 'suspend'])
+            ->name('sellers.suspend');
+
+        Route::get('/module-requests', [App\Http\Controllers\Admin\ModuleRequestController::class, 'index'])->name('module-requests.index');
+        Route::get('/module-requests/{moduleRequest}', [App\Http\Controllers\Admin\ModuleRequestController::class, 'show'])->name('module-requests.show');
+        Route::post('/module-requests/{moduleRequest}/approve', [App\Http\Controllers\Admin\ModuleRequestController::class, 'approve'])->name('module-requests.approve');
+        Route::post('/module-requests/{moduleRequest}/reject', [App\Http\Controllers\Admin\ModuleRequestController::class, 'reject'])->name('module-requests.reject');
 
         // // Modules management
+        Route::resource('modules', ModuleController::class);
         // Route::get('/modules', [\App\Http\Controllers\Admin\ModuleController::class, 'index'])
         //     ->name('modules.index');
         // Route::get('/modules/{module}/edit', [\App\Http\Controllers\Admin\ModuleController::class, 'edit'])
@@ -170,28 +187,27 @@ Route::middleware(['auth', 'verified', 'seller'])
     ->group(function () {
 
         // Dashboard
-        Route::get('/dashboard', [\App\Http\Controllers\Seller\DashboardController::class, 'index'])
+        Route::get('/dashboard', [App\Http\Controllers\Seller\DashboardController::class, 'index'])
             ->name('dashboard');
 
+        Route::get('/modules', [ModuleRequestController::class, 'index'])->name('modules.index');
+        Route::post('/modules/request', [ModuleRequestController::class, 'store'])->name('modules.request');
+        Route::get('/modules/{moduleRequest}', [ModuleRequestController::class, 'show'])->name('modules.show');
+
         // // Referrals
-        // Route::get('/referrals', [\App\Http\Controllers\Seller\ReferralController::class, 'index'])
-        //     ->name('referrals.index');
+        Route::get('/referrals', [ReferralController::class, 'index'])
+            ->name('referrals.index');
 
         // // Commissions
-        // Route::get('/commissions', [\App\Http\Controllers\Seller\CommissionController::class, 'index'])
-        //     ->name('commissions.index');
+        Route::get('/commissions', [CommissionController::class, 'index'])
+            ->name('commissions.index');
 
         // // Wallet
-        // Route::get('/wallet', [\App\Http\Controllers\Seller\WalletController::class, 'index'])
-        //     ->name('wallet.index');
+        Route::get('/wallet', [WalletController::class, 'index'])
+            ->name('wallet.index');
         // Route::post('/wallet/withdraw', [\App\Http\Controllers\Seller\WalletController::class, 'withdraw'])
         //     ->name('wallet.withdraw');
 
-        // // Profile
-        // Route::get('/profile', [\App\Http\Controllers\Seller\ProfileController::class, 'edit'])
-        //     ->name('profile.edit');
-        // Route::patch('/profile', [\App\Http\Controllers\Seller\ProfileController::class, 'update'])
-        //     ->name('profile.update');
     });
 
 // ─────────────────────────────────────────────
@@ -205,6 +221,8 @@ Route::middleware(['auth', 'verified', 'tenant_owner'])
     ->name('tenant.')
     ->group(function () {
 
+        Route::get('/dashboard', [App\Http\Controllers\Tenant\DashboardController::class, 'index'])
+            ->name('dashboard');
         // // Tenant signup (create new school)
         // Route::get('/signup', [\App\Http\Controllers\Tenant\SignupController::class, 'show'])
         //     ->name('signup');

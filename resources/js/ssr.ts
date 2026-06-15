@@ -20,7 +20,6 @@ createServer((page) =>
             ),
 
         setup({ App, props, plugin }) {
-
             // ✅ FIX: safe cast for SSR + Ziggy
             const ziggy = (props as any).ziggy;
 

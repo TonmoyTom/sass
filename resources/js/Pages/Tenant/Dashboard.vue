@@ -1,0 +1,39 @@
+<script setup lang="ts">
+import TenantLayout from '@/Layouts/TenantLayout.vue';
+import { Head, router } from '@inertiajs/vue3';
+
+defineProps<{
+    stats: {
+        total_tenants: number;
+        active_tenants: number;
+        trial_tenants: number;
+        total_sellers: number;
+        active_sellers: number;
+        pending_sellers: number;
+        monthly_revenue: number;
+        pending_withdrawals: number;
+    };
+    recentTenants: any[];
+    topSellers: any[];
+    recentActivity: any[];
+}>();
+
+const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0 }).format(
+        val,
+    );
+};
+
+const logout = () => {
+    router.post(route('logout'));
+};
+</script>
+
+<template>
+    <Head title="Admin Dashboard" />
+    <TenantLayout>
+        <div>
+            <p>Hello</p>
+        </div>
+    </TenantLayout>
+</template>

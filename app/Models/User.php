@@ -75,15 +75,19 @@ class User extends Authenticatable
         'avatar' => 'avatars',
     ];
 
+    protected $appends = [
+        'avatar_url',
+    ];
+
     // ─────────────────────────────────────────────
     // RELATIONSHIPS
     // ─────────────────────────────────────────────
 
-
-    public function userInfo()
+    public function info()
     {
-        return $this->hasOne(\App\Models\UserInfo::class);
+        return $this->hasOne(UserInfo::class);
     }
+
     /**
      * Tenants owned by this user (for tenant_owner type).
      */
@@ -97,7 +101,7 @@ class User extends Authenticatable
      */
     public function sellerProfile()
     {
-        return $this->hasOne(\App\Models\Seller::class);
+        return $this->hasOne(Seller::class);
     }
 
     // ─────────────────────────────────────────────
@@ -169,7 +173,7 @@ class User extends Authenticatable
      */
     public function getAvatarUrlAttribute(): ?string
     {
-        if (!$this->avatar) {
+        if (! $this->avatar) {
             // Default avatar from initials (Gravatar-like)
             return $this->getDefaultAvatarUrl();
         }
@@ -183,6 +187,7 @@ class User extends Authenticatable
     protected function getDefaultAvatarUrl(): string
     {
         $name = urlencode($this->name);
+
         return "https://ui-avatars.com/api/?name={$name}&background=6366f1&color=fff&size=200";
     }
 
@@ -193,7 +198,7 @@ class User extends Authenticatable
     {
         return collect(explode(' ', $this->name))
             ->take(2)
-            ->map(fn($word) => strtoupper(substr($word, 0, 1)))
+            ->map(fn ($word) => strtoupper(substr($word, 0, 1)))
             ->implode('');
     }
 
@@ -213,10 +218,10 @@ class User extends Authenticatable
      */
     public function getDashboardUrl(): string
     {
-        return match($this->user_type) {
+        return match ($this->user_type) {
             UserType::SUPER_ADMIN => route('admin.dashboard'),
             UserType::SELLER => route('seller.dashboard'),
-            UserType::TENANT_OWNER => $this->getTenantDashboardUrl(),
+            UserType::TENANT_OWNER => route('tenant.dashboard'),
         };
     }
 
@@ -227,7 +232,7 @@ class User extends Authenticatable
     {
         $tenant = $this->ownedTenants()->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             return route('tenant.signup'); // No tenant yet, redirect to create one
         }
 

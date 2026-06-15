@@ -35,11 +35,13 @@ export default defineConfig({
         host: '0.0.0.0',
         port: 5173,
         strictPort: true,
+        cors: true,
         hmr: {
             host: 'localhost',
             port: 5173,
             protocol: 'ws',
         },
+        origin: 'http://localhost:5173',
         watch: {
             usePolling: process.env.VITE_POLLING === 'true',
             interval: 300,

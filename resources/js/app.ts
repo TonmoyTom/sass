@@ -1,12 +1,52 @@
 import '../css/app.css';
 import '../js/bootstrap';
 
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, DefineComponent, h } from 'vue';
-import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+import { ZiggyVue } from 'ziggy-js';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// ─── Global full-page loader (app-level, remount-proof) ───
+let loaderEl: HTMLElement | null = null;
+let delayTimer: ReturnType<typeof setTimeout> | null = null;
+
+function createLoader() {
+    const el = document.createElement('div');
+    el.id = 'global-loader';
+    el.innerHTML = `
+        <div class="gl-backdrop">
+            <div class="gl-spinner"></div>
+        </div>
+    `;
+    return el;
+}
+
+function showLoader() {
+    if (loaderEl) return;
+    loaderEl = createLoader();
+    document.body.appendChild(loaderEl);
+    requestAnimationFrame(() => loaderEl?.classList.add('gl-show'));
+}
+
+function hideLoader() {
+    if (!loaderEl) return;
+    const el = loaderEl;
+    loaderEl = null;
+    el.classList.remove('gl-show');
+    setTimeout(() => el.remove(), 250);
+}
+
+router.on('start', () => {
+    // 250ms delay — fast navigation-e flash korbe na
+    delayTimer = setTimeout(showLoader, 250);
+});
+
+router.on('finish', () => {
+    if (delayTimer) clearTimeout(delayTimer);
+    hideLoader();
+});
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
@@ -21,7 +61,5 @@ createInertiaApp({
             .use(ZiggyVue)
             .mount(el);
     },
-    progress: {
-        color: '#4B5563',
-    },
+    progress: false, // built-in off — amader custom loader
 });

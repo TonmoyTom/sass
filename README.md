@@ -1,9 +1,20 @@
 # 🐳 Laravel Tenancy — Docker Setup
+
 ### Stack: Laravel · Inertia.js · Vue 3 · MySQL · Redis · phpMyAdmin · SASS
 
 ---
 
 ## 📁 File Structure
+
+docker compose up -d
+
+docker compose logs -f node
+
+docker compose restart node
+
+docker compose run --rm node npm run build
+
+npx prettier --write "resources/\*_/_.{vue,js,ts}"
 
 ```
 project/
@@ -51,13 +62,13 @@ make npm-dev        # Start Vite dev server
 
 ## 🌐 URLs
 
-| Service | URL |
-|---------|-----|
-| Laravel App | http://localhost |
-| phpMyAdmin | http://localhost:8080 |
-| Vite (HMR) | http://localhost:5173 |
-| MySQL | localhost:3306 |
-| Redis | localhost:6379 |
+| Service     | URL                   |
+| ----------- | --------------------- |
+| Laravel App | http://localhost      |
+| phpMyAdmin  | http://localhost:8080 |
+| Vite (HMR)  | http://localhost:5173 |
+| MySQL       | localhost:3306        |
+| Redis       | localhost:6379        |
 
 ---
 
@@ -76,13 +87,13 @@ Then access http://tenant1.localhost in your browser.
 
 ## 🔑 Database Credentials
 
-| | Value |
-|-|-------|
-| Host | `mysql` (container) / `localhost` (host) |
-| Database | `laravel` |
-| Username | `laravel` |
-| Password | `secret` |
-| Root Password | `rootsecret` |
+|               | Value                                    |
+| ------------- | ---------------------------------------- |
+| Host          | `mysql` (container) / `localhost` (host) |
+| Database      | `laravel`                                |
+| Username      | `laravel`                                |
+| Password      | `secret`                                 |
+| Root Password | `rootsecret`                             |
 
 ---
 
@@ -147,4 +158,5 @@ resources/
 - Build assets with `make npm-build`
 - Optimize Laravel with `make optimize`
 - Add Nginx SSL config with a wildcard certificate
+
 # sass

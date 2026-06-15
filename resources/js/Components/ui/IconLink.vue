@@ -28,11 +28,13 @@ defineProps({
     },
     textClass: {
         type: String,
-        default: 'text-lg font-bold tracking-tight text-gray-900 dark:text-white leading-none',
+        default:
+            'text-lg font-bold tracking-tight text-gray-900 dark:text-white leading-none',
     },
     taglineClass: {
         type: String,
-        default: 'text-[9px] font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase leading-tight mt-0.5',
+        default:
+            'text-[9px] font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase leading-tight mt-0.5',
     },
 });
 </script>

@@ -25,13 +25,10 @@ return new class extends Migration
             $table->string('icon', 100)->nullable();
             $table->string('version', 20)->default('1.0.0');
 
-            // Pricing model
+            // Pricing nature (actual price tier-e)
             $table->enum('pricing_type', ['subscription', 'one_time'])->default('subscription');
-            $table->decimal('monthly_price', 10, 2)->default(0);
-            $table->decimal('yearly_price', 10, 2)->default(0);
-            $table->decimal('one_time_price', 10, 2)->nullable();
 
-            // Commission
+            // Commission (module-level, seller's cut)
             $table->decimal('commission_rate', 5, 2)->default(70.00);
 
             // Categorization
@@ -46,7 +43,6 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Indexes
             $table->index('alias');
             $table->index('is_active');
             $table->index('pricing_type');

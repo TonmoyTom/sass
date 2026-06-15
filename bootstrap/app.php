@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckTenantActive;
 use App\Http\Middleware\EnsureModuleActive;
 use App\Http\Middleware\EnsureSeller;
 use App\Http\Middleware\EnsureSuperAdmin;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super_admin' => EnsureSuperAdmin::class,
             'seller' => EnsureSeller::class,
             'tenant_owner' => EnsureTenantOwner::class,
+            'tenant.active' => CheckTenantActive::class,
         ]);
 
         //

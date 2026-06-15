@@ -14,6 +14,10 @@ module.exports = {
     },
     rules: {
         "vue/multi-word-component-names": "off",
-        "no-undef": "off"
+        "no-undef": "off",
+        "no-unused-vars": ["warn", {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_"
+        }]
     }
 }

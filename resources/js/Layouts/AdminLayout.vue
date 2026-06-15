@@ -1,24 +1,27 @@
 <template>
-  <div class="min-h-screen xl:flex">
-    <AppSidebar />
-    <Backdrop />
-    <div
-      class="flex-1 transition-all duration-300 ease-in-out"
-      :class="[isExpanded || isHovered ? 'lg:ml-[290px]' : 'lg:ml-[90px]']"
-    >
-      <AppHeader />
-      <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
-        <slot></slot>
-      </div>
+    <Head :title="title" />
+    <div class="min-h-screen xl:flex">
+        <AppSidebar />
+        <Backdrop />
+        <div
+            class="flex-1 transition-all duration-300 ease-in-out"
+            :class="[
+                isExpanded || isHovered ? 'lg:ml-[290px]' : 'lg:ml-[90px]',
+            ]"
+        >
+            <AppHeader />
+            <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
+                <slot></slot>
+            </div>
+        </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-const { isExpanded, isHovered } = useSidebar()
-import AppSidebar from '../Components/ui/AppSidebar.vue'
-import AppHeader from '../Components/ui/AppHeader.vue'
-import { useSidebar } from '../composables/useSidebar.js'
-import Backdrop from '../Components/ui/Backdrop.vue'
-
+import { Head } from '@inertiajs/vue3';
+import AppHeader from '../Components/ui/AppHeader.vue';
+import AppSidebar from '../Components/ui/AppSidebar.vue';
+import Backdrop from '../Components/ui/Backdrop.vue';
+import { useSidebar } from '../composables/useSidebar.js';
+const { isExpanded, isHovered } = useSidebar();
 </script>

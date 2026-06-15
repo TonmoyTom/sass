@@ -5,67 +5,61 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Models\Commission;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Seller Dashboard Controller
  *
  * Dashboard for sellers/affiliates.
- * Shows: earnings, referrals, commissions, wallet balance.
+ * Shows: earnings, modules, commissions, wallet balance.
  */
 class DashboardController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $user = $request->user();
+        $seller = auth()->user()->sellerProfile;
 
-        return $this->respond(
-            page: 'Seller/Dashboard',
-            data: [
-                'stats' => $this->getStats($user),
-                'recentReferrals' => $this->getRecentReferrals($user),
-                'recentCommissions' => $this->getRecentCommissions($user),
-                'referralLink' => $this->getReferralLink($user),
+        abort_unless($seller, 403, 'Seller profile not found');
+
+        $wallet = $seller->wallet;
+
+        // approved module count (sell korte pare)
+        $approvedModules = $seller->moduleRequests()->where('status', 'approved')->count();
+        $pendingRequests = $seller->moduleRequests()->where('status', 'pending')->count();
+
+        // recent commissions
+        $recentCommissions = Commission::where('seller_id', $seller->id)
+            ->with(['sale.module', 'sale.tenant'])
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(fn ($c) => [
+                'module_name' => $c->sale?->module?->name ?? '—',
+                'tenant_name' => $c->sale?->tenant?->name ?? '—',
+                'amount'      => $c->amount,
+                'status'      => $c->status,
+                'created_at'  => $c->created_at?->format('d M Y'),
+            ]);
+
+        return Inertia::render('Seller/Dashboard', [
+            'seller' => [
+                'name'            => $seller->user?->name,
+                'referral_code'   => $seller->referral_code,
+                'commission_rate' => $seller->commission_rate,
+                'status'          => $seller->status,
             ],
-        );
-    }
-
-    /**
-     * Get seller statistics.
-     */
-    protected function getStats($user): array
-    {
-        // For now, returning placeholder data
-        // Will be implemented when sellers table is created
-        return [
-            'total_earned' => 0,
-            'available_balance' => 0,
-            'pending_balance' => 0,
-            'this_month_earnings' => 0,
-            'total_referrals' => 0,
-            'active_referrals' => 0,
-            'conversion_rate' => 0,
-        ];
-    }
-
-    protected function getRecentReferrals($user): array
-    {
-        return [];
-    }
-
-    protected function getRecentCommissions($user): array
-    {
-        return [];
-    }
-
-    /**
-     * Generate seller's referral link.
-     */
-    protected function getReferralLink($user): string
-    {
-        // Will use seller's unique referral_code from sellers table
-        // For now, use user ID
-        $code = $user->sellerProfile?->referral_code ?? 'CODE' . $user->id;
-        return config('app.url') . '/signup?ref=' . $code;
+            'stats' => [
+                'available_balance' => $wallet?->available_balance ?? 0,
+                'pending_balance'   => $wallet?->pending_balance ?? 0,
+                'total_earned'      => $wallet?->total_earned ?? 0,
+                'total_sales'       => $seller->total_sales,
+                'approved_modules'  => $approvedModules,
+                'pending_requests'  => $pendingRequests,
+            ],
+            'recent_commissions' => $recentCommissions,
+        ]);
     }
 }

@@ -9,12 +9,13 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 Route::middleware([
     'web',
+    'tenant.active',
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])->domain('{tenant}.localhost')->group(function () {
 
     Route::get('/', function () {
-        dd("hello");
+        dd('hello');
         // return Inertia::render('Tenant/Dashboard', [
         //     'tenant' => tenant(),
         // ]);
