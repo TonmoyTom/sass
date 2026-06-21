@@ -142,4 +142,32 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'suspended_reason' => null,
         ]);
     }
+
+    public function hasModule(string $moduleAlias): bool
+    {
+        return TenantModule::on('mysql')   // ← central connection
+            ->where('tenant_id', $this->id)
+            ->whereHas('module', fn ($q) => $q->where('alias', $moduleAlias))
+            ->whereIn('status', ['active', 'purchased', 'trial'])
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->exists();
+    }
+
+    public function enabledModules(): array
+    {
+        return TenantModule::on('mysql')   // ← central connection
+            ->where('tenant_id', $this->id)
+            ->whereIn('status', ['active', 'purchased', 'trial'])
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->with('module')
+            ->get()
+            ->pluck('module.alias')
+            ->filter()
+            ->values()
+            ->all();
+    }
 }

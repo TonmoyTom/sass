@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\CompanySetting;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -34,6 +36,20 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'workspace' => function () {
+                if (! tenant()) {
+                    return null;
+                }
+
+                $t = Tenant::on('mysql')->find(tenant('id'));
+                $settings = CompanySetting::current();
+
+                return [
+                    'company_name' => $settings->company_name ?? 'Workspace',
+                    'logo_url' => $settings->logo_url,
+                    'enabled_modules' => $t?->enabledModules() ?? [],
+                ];
+            },
         ];
     }
 }

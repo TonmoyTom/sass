@@ -325,6 +325,11 @@ const menuGroups = [
                         path: '/admin/module-requests',
                         pro: false,
                     },
+                    {
+                        name: 'Commission',
+                        path: '/admin/commissions',
+                        pro: false,
+                    },
                 ],
             },
             {
@@ -337,6 +342,28 @@ const menuGroups = [
                         pro: false,
                     },
                     { name: 'List', path: '/admin/modules', pro: false },
+                ],
+            },
+            {
+                name: 'Orders',
+                icon: GridIcon,
+                subItems: [
+                    {
+                        name: 'List',
+                        path: '/admin/orders',
+                        pro: false,
+                    },
+                ],
+            },
+            {
+                name: 'Reports',
+                icon: GridIcon,
+                subItems: [
+                    {
+                        name: 'List',
+                        path: '/admin/reports',
+                        pro: false,
+                    },
                 ],
             },
         ],

@@ -41,6 +41,6 @@ class Sale extends Model
 
     public function commission()
     {
-        return $this->hasOne(Commission::class);
+        return $this->hasOne(Commission::class ,  'sale_id');
     }
 }

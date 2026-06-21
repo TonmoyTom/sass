@@ -221,7 +221,7 @@ class User extends Authenticatable
         return match ($this->user_type) {
             UserType::SUPER_ADMIN => route('admin.dashboard'),
             UserType::SELLER => route('seller.dashboard'),
-            UserType::TENANT_OWNER => route('tenant.dashboard'),
+            UserType::TENANT_OWNER => route('tenant.central.dashboard'),
         };
     }
 

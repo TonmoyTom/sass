@@ -7,6 +7,7 @@ namespace App\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Laravel\Facades\Image;
 
 /**
  * FileStorageService
@@ -57,8 +58,6 @@ class FileStorageService
     /**
      * Upload an image with automatic resizing/optimization.
      *
-     * @param  UploadedFile  $file
-     * @param  string  $directory
      * @param  array  $options  ['width' => 800, 'height' => 800, 'quality' => 80]
      * @return string Stored path
      */
@@ -77,12 +76,12 @@ class FileStorageService
 
         $directory = trim($directory, '/');
         $extension = $options['format'] ?? $file->getClientOriginalExtension();
-        $filename = Str::uuid()->toString() . '.' . $extension;
+        $filename = Str::uuid()->toString().'.'.$extension;
         $fullPath = "{$directory}/{$filename}";
 
         // Use Intervention Image to optimize
-        if (class_exists(\Intervention\Image\Laravel\Facades\Image::class)) {
-            $image = \Intervention\Image\Laravel\Facades\Image::read($file->getRealPath());
+        if (class_exists(Image::class)) {
+            $image = Image::read($file->getRealPath());
 
             // Resize if width specified
             if ($options['width'] || $options['height']) {
@@ -112,7 +111,6 @@ class FileStorageService
      * @param  string  $content  Raw file content
      * @param  string  $directory  Target directory
      * @param  string  $filename  Filename with extension
-     * @param  string|null  $disk
      * @return string Stored path
      */
     public function saveContent(
@@ -134,8 +132,6 @@ class FileStorageService
      * Delete a file from storage.
      *
      * @param  string  $path  Relative path
-     * @param  string|null  $disk
-     * @return bool
      */
     public function deleteFile(?string $path, ?string $disk = null): bool
     {
@@ -155,8 +151,6 @@ class FileStorageService
     /**
      * Delete multiple files.
      *
-     * @param  array  $paths
-     * @param  string|null  $disk
      * @return int Number of files deleted
      */
     public function deleteFiles(array $paths, ?string $disk = null): int
@@ -167,6 +161,7 @@ class FileStorageService
                 $deleted++;
             }
         }
+
         return $deleted;
     }
 
@@ -177,14 +172,15 @@ class FileStorageService
      * @param  string|null  $disk
      * @return string|null
      */
-    public function getUrl(?string $path, ?string $disk = null): ?string
+    public function getUrl(string $path): string
     {
-        if (empty($path)) {
-            return null;
+        // tenant context-e — tenant asset URL
+        if (function_exists('tenant') && tenant()) {
+            return '/tenancy/assets/'.$path;
         }
 
-        $disk = $disk ?? $this->defaultDisk;
-        return Storage::disk($disk)->url($path);
+        // central context — normal storage URL
+        return Storage::disk('public')->url($path);
     }
 
     /**
@@ -193,6 +189,7 @@ class FileStorageService
     public function exists(string $path, ?string $disk = null): bool
     {
         $disk = $disk ?? $this->defaultDisk;
+
         return Storage::disk($disk)->exists($path);
     }
 
@@ -202,6 +199,7 @@ class FileStorageService
     public function size(string $path, ?string $disk = null): int
     {
         $disk = $disk ?? $this->defaultDisk;
+
         return Storage::disk($disk)->size($path);
     }
 
@@ -211,6 +209,7 @@ class FileStorageService
     public function move(string $from, string $to, ?string $disk = null): bool
     {
         $disk = $disk ?? $this->defaultDisk;
+
         return Storage::disk($disk)->move($from, $to);
     }
 
@@ -220,6 +219,7 @@ class FileStorageService
     public function copy(string $from, string $to, ?string $disk = null): bool
     {
         $disk = $disk ?? $this->defaultDisk;
+
         return Storage::disk($disk)->copy($from, $to);
     }
 
@@ -230,6 +230,7 @@ class FileStorageService
     public function tenantPath(string $directory): string
     {
         $tenantId = tenant() ? tenant()->getTenantKey() : 'central';
-        return "tenants/{$tenantId}/" . trim($directory, '/');
+
+        return "tenants/{$tenantId}/".trim($directory, '/');
     }
 }

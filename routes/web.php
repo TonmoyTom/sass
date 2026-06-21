@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SellerController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\ProfileController;
@@ -11,6 +13,8 @@ use App\Http\Controllers\Seller\CommissionController;
 use App\Http\Controllers\Seller\ModuleRequestController;
 use App\Http\Controllers\Seller\ReferralController;
 use App\Http\Controllers\Seller\WalletController;
+use App\Http\Controllers\Tenant\CartController;
+use App\Http\Controllers\Tenant\CheckoutController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -127,30 +131,15 @@ Route::middleware(['auth', 'verified', 'super_admin'])
 
         // // Modules management
         Route::resource('modules', ModuleController::class);
-        // Route::get('/modules', [\App\Http\Controllers\Admin\ModuleController::class, 'index'])
-        //     ->name('modules.index');
-        // Route::get('/modules/{module}/edit', [\App\Http\Controllers\Admin\ModuleController::class, 'edit'])
-        //     ->name('modules.edit');
-        // Route::patch('/modules/{module}', [\App\Http\Controllers\Admin\ModuleController::class, 'update'])
-        //     ->name('modules.update');
-        // Route::post('/modules/sync', [\App\Http\Controllers\Admin\ModuleController::class, 'sync'])
-        //     ->name('modules.sync');
-
-        // // Subscription Plans
-        // Route::resource('plans', \App\Http\Controllers\Admin\SubscriptionPlanController::class);
-
-        // // Payments & Invoices
-        // Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index'])
-        //     ->name('payments.index');
-        // Route::get('/payments/{payment}', [\App\Http\Controllers\Admin\PaymentController::class, 'show'])
-        //     ->name('payments.show');
-        // Route::post('/payments/{payment}/refund', [\App\Http\Controllers\Admin\PaymentController::class, 'refund'])
-        //     ->name('payments.refund');
-
-        // Route::get('/invoices', [\App\Http\Controllers\Admin\InvoiceController::class, 'index'])
-        //     ->name('invoices.index');
-        // Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Admin\InvoiceController::class, 'download'])
-        //     ->name('invoices.download');
+        // commissions
+        Route::get('/commissions', [App\Http\Controllers\Admin\CommissionController::class, 'index'])->name('commissions.index');
+        Route::post('/commissions/{commission}/approve', [App\Http\Controllers\Admin\CommissionController::class, 'approve'])->name('commissions.approve');
+        Route::post('/commissions/{commission}/reject', [App\Http\Controllers\Admin\CommissionController::class, 'reject'])->name('commissions.reject');
+        Route::post('/commissions/approve-due', [App\Http\Controllers\Admin\CommissionController::class, 'approveDue'])->name('commissions.approve-due');
+        //  Orders & Invoices
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
 
         // // Withdrawal Requests
         // Route::get('/withdrawals', [\App\Http\Controllers\Admin\WithdrawalController::class, 'index'])
@@ -161,14 +150,10 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         //     ->name('withdrawals.reject');
 
         // // Reports & Analytics
-        // Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])
-        //     ->name('reports.index');
-        // Route::get('/reports/revenue', [\App\Http\Controllers\Admin\ReportController::class, 'revenue'])
-        //     ->name('reports.revenue');
-        // Route::get('/reports/tenants', [\App\Http\Controllers\Admin\ReportController::class, 'tenants'])
-        //     ->name('reports.tenants');
-        // Route::get('/reports/sellers', [\App\Http\Controllers\Admin\ReportController::class, 'sellers'])
-        //     ->name('reports.sellers');
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/revenue', [ReportController::class, 'revenue'])->name('reports.revenue');
+        Route::get('/reports/tenants', [ReportController::class, 'tenants'])->name('reports.tenants');
+        Route::get('/reports/sellers', [ReportController::class, 'sellers'])->name('reports.sellers');
 
         // // Settings
         // Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])
@@ -222,28 +207,19 @@ Route::middleware(['auth', 'verified', 'tenant_owner'])
     ->group(function () {
 
         Route::get('/dashboard', [App\Http\Controllers\Tenant\DashboardController::class, 'index'])
-            ->name('dashboard');
-        // // Tenant signup (create new school)
-        // Route::get('/signup', [\App\Http\Controllers\Tenant\SignupController::class, 'show'])
-        //     ->name('signup');
-        // Route::post('/signup', [\App\Http\Controllers\Tenant\SignupController::class, 'store'])
-        //     ->name('signup.store');
+            ->name('central.dashboard');
 
-        // // My tenants list (if owner has multiple)
-        // Route::get('/my-tenants', [\App\Http\Controllers\Tenant\OwnerController::class, 'index'])
-        //     ->name('my-tenants');
+        Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+        Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+        Route::delete('/cart/{item}', [CartController::class, 'remove'])->name('cart.remove');
+        Route::post('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
+        Route::get('/modules', [App\Http\Controllers\Tenant\ModuleController::class, 'index'])->name('modules.index');
+        Route::get('/workspace/open', [App\Http\Controllers\Tenant\ModuleController::class, 'openWorkspace'])->name('workspace.open');
 
-        // // Subscription management
-        // Route::get('/subscription', [\App\Http\Controllers\Tenant\SubscriptionController::class, 'show'])
-        //     ->name('subscription.show');
-        // Route::get('/subscription/upgrade', [\App\Http\Controllers\Tenant\SubscriptionController::class, 'upgrade'])
-        //     ->name('subscription.upgrade');
-        // Route::post('/subscription/upgrade', [\App\Http\Controllers\Tenant\SubscriptionController::class, 'processUpgrade'])
-        //     ->name('subscription.process-upgrade');
+        Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+        Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+        Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
 
-        // // Billing
-        // Route::get('/billing', [\App\Http\Controllers\Tenant\BillingController::class, 'index'])
-        //     ->name('billing.index');
     });
 
 // ─────────────────────────────────────────────

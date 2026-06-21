@@ -1,0 +1,30 @@
+<template>
+    <Head :title="title" />
+    <div class="min-h-screen xl:flex">
+        <WorkspaceSidebar />
+        <Backdrop />
+        <div
+            class="flex-1 transition-all duration-300 ease-in-out"
+            :class="[isExpanded || isHovered ? 'lg:ml-[290px]' : 'lg:ml-[90px]']"
+        >
+            <AppHeader />
+            <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { Head } from '@inertiajs/vue3';
+import AppHeader from '../Components/ui/AppHeader.vue';
+import Backdrop from '../Components/ui/Backdrop.vue';
+import WorkspaceSidebar from '../Components/ui/WorkspaceSidebar.vue';
+import { useSidebar } from '../composables/useSidebar.js';
+
+const { isExpanded, isHovered } = useSidebar();
+
+defineProps({
+    title: { type: String, default: 'Workspace' },
+});
+</script>

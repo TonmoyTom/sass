@@ -5,25 +5,36 @@ namespace App\Services;
 use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 class OwnerProfileSync
 {
     public function syncToTenant(User $owner, array $data, ?string $originalEmail = null): void
     {
         $matchEmail = $originalEmail ?? $owner->email;
+        $avatarPath = $owner->avatar;
+        $avatarContent = null;
+        if ($avatarPath && Storage::disk('public')->exists($avatarPath)) {
+            $avatarContent = Storage::disk('public')->get($avatarPath);
+        }
 
         foreach ($owner->ownedTenants as $tenant) {
-            $tenant->run(function () use ($owner, $data, $matchEmail) {
+            $tenant->run(function () use ($owner, $data, $matchEmail, $avatarPath, $avatarContent) {
                 $tenantUser = TenantUser::where('email', $matchEmail)->first();
 
                 if (! $tenantUser) {
                     return;
                 }
+
+                if ($avatarPath && $avatarContent !== null) {
+                    Storage::disk('public')->put($avatarPath, $avatarContent);
+                }
+
                 $tenantUser->update([
                     'name' => $owner->name,
                     'email' => $data['email'] ?? $tenantUser->email,
                     'phone' => $data['phone'] ?? $tenantUser->phone,
-                    'avatar' => $data['avatar'] ?? $tenantUser->avatar,
+                    'avatar' => $avatarPath ?? $tenantUser->avatar,   // same path
                 ]);
 
                 $tenantUser->info()->updateOrCreate(
@@ -43,7 +54,6 @@ class OwnerProfileSync
                 );
             });
         }
-
     }
 
     public function syncToCentral(Tenant $tenant, TenantUser $tenantUser, array $data, ?string $originalEmail = null): void
@@ -55,14 +65,28 @@ class OwnerProfileSync
             return;
         }
 
+        $avatarPath = $tenantUser->avatar;
+        $avatarContent = null;
+        if ($avatarPath && Storage::disk('public')->exists($avatarPath)) {
+            $avatarContent = Storage::disk('public')->get($avatarPath);
+        }
+
         $owner->update([
             'name' => $data['name'] ?? $owner->name,
             'email' => $data['email'] ?? $owner->email,
             'phone' => $data['phone'] ?? $owner->phone,
-            'avatar' => $data['avatar'] ?? $owner->avatar,
+            'avatar' => $avatarPath ?? $owner->avatar,
         ]);
 
-        $info = $owner->info()->updateOrCreate(
+        // avatar central disk-e copy — tenancy context theke ber hoye
+        if ($avatarPath && $avatarContent !== null) {
+            // central disk-e likhte tenancy end korte hobe (ba central disk explicit)
+            tenancy()->central(function () use ($avatarPath, $avatarContent) {
+                Storage::disk('public')->put($avatarPath, $avatarContent);
+            });
+        }
+
+        $owner->info()->updateOrCreate(
             ['user_id' => $owner->id],
             [
                 'first_name' => $data['first_name'] ?? $owner->info?->first_name,
@@ -73,10 +97,9 @@ class OwnerProfileSync
                 'postal_code' => $data['postal_code'] ?? $owner->info?->postal_code,
                 'facebook' => $data['facebook'] ?? $owner->info?->facebook,
                 'twitter' => $data['twitter'] ?? $owner->info?->twitter,
-                'lnkedin' => $data['linkedin'] ?? $owner->info?->lnkedin,  // central typo column
+                'lnkedin' => $data['linkedin'] ?? $owner->info?->lnkedin,
                 'instagram' => $data['instagram'] ?? $owner->info?->instagram,
             ]
         );
-
     }
 }
