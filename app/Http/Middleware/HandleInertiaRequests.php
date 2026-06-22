@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\CompanySetting;
 use App\Models\Tenant;
+use App\Services\TenantAssetService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,6 +37,28 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+
+            
+            'tenant' => function () use ($request) {
+                $user = $request->user();
+                if (! $user) {
+                    return null;
+                }
+
+                $owned = $user->ownedTenants()->with('domains')->first();
+                if (! $owned) {
+                    return null;
+                }
+
+                return [
+                    'name' => $owned->name,
+                    'status' => $owned->status,
+                    'domain' => $owned->domains->first()?->domain,
+                    'logo' => app(TenantAssetService::class)->companyLogo($owned),
+                ];
+            },
+
+            // ── tenant side: subdomain context ──
             'workspace' => function () {
                 if (! tenant()) {
                     return null;

@@ -220,6 +220,10 @@ Route::middleware(['auth', 'verified', 'tenant_owner'])
         Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
         Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
 
+        Route::get('/orders', [App\Http\Controllers\Tenant\OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [App\Http\Controllers\Tenant\OrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{order}/invoice', [App\Http\Controllers\Tenant\OrderController::class, 'invoice'])->name('orders.invoice');
+
     });
 
 // ─────────────────────────────────────────────

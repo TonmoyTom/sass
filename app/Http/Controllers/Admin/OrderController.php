@@ -54,7 +54,7 @@ class OrderController extends Controller
     public function show(Sale $order): Response
     {
         $order->load(['module', 'tenant.owner.info', 'seller.user', 'tier', 'commission']);
-
+    
         return Inertia::render('Admin/Orders/Show', [
             'order' => [
                 'id'              => $order->id,
