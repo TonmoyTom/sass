@@ -27,6 +27,15 @@
                     fill=""
                 />
             </svg>
+            <!-- Badge for count -->
+            <span
+                v-if="unreadCount > 0"
+                class="absolute top-0 right-0 z-10 h-2 w-2 rounded-full bg-orange-400"
+            >
+                <span
+                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"
+                ></span>
+            </span>
         </button>
 
         <!-- Dropdown Start -->
@@ -65,11 +74,28 @@
                 </button>
             </div>
 
-            <ul class="custom-scrollbar flex h-auto flex-col overflow-y-auto">
+            <!-- Empty State -->
+            <div
+                v-if="notifications.length === 0"
+                class="flex h-full items-center justify-center"
+            >
+                <div class="text-center">
+                    <p class="text-gray-500 dark:text-gray-400">
+                        No notifications yet
+                    </p>
+                </div>
+            </div>
+
+            <!-- Notifications List -->
+            <ul
+                v-else
+                class="custom-scrollbar flex h-auto flex-col overflow-y-auto"
+            >
                 <li
                     v-for="notification in notifications"
                     :key="notification.id"
-                    @click="handleItemClick"
+                    @click="handleItemClick(notification)"
+                    class="cursor-pointer transition-colors"
                 >
                     <a
                         class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
@@ -79,7 +105,10 @@
                             class="relative z-1 block h-10 w-full max-w-10 rounded-full"
                         >
                             <img
-                                :src="notification.userImage"
+                                :src="
+                                    notification.userImage ||
+                                    '/images/user/default.jpg'
+                                "
                                 alt="User"
                                 class="overflow-hidden rounded-full"
                             />
@@ -93,7 +122,7 @@
                             ></span>
                         </span>
 
-                        <span class="block">
+                        <span class="block flex-1">
                             <span
                                 class="text-theme-sm mb-1.5 block text-gray-500 dark:text-gray-400"
                             >
@@ -117,9 +146,17 @@
                                 <span
                                     class="h-1 w-1 rounded-full bg-gray-400"
                                 ></span>
-                                <span>{{ notification.time }}</span>
+                                <span>{{
+                                    formatTime(notification.timestamp)
+                                }}</span>
                             </span>
                         </span>
+
+                        <!-- Mark as read dot -->
+                        <span
+                            v-if="!notification.read"
+                            class="mt-2 h-2 w-2 rounded-full bg-blue-500"
+                        ></span>
                     </a>
                 </li>
             </ul>
@@ -137,100 +174,32 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/vue3';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
+const page = usePage();
 const dropdownOpen = ref(false);
-const notifying = ref(true);
+const notifying = ref(false);
 const dropdownRef = ref(null);
+const notifications = ref([]);
 
-const notifications = ref([
-    {
-        id: 1,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-02.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'online',
-    },
-    {
-        id: 2,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-03.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'offline',
-    },
-    {
-        id: 3,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-04.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'online',
-    },
-    {
-        id: 4,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-05.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'online',
-    },
-    {
-        id: 5,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-06.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'offline',
-    },
-    {
-        id: 6,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-07.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'online',
-    },
-    {
-        id: 7,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-08.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'online',
-    },
-    {
-        id: 7,
-        userName: 'Terry Franci',
-        userImage: '/images/user/user-09.jpg',
-        action: 'requests permission to change',
-        project: 'Project - Nganter App',
-        type: 'Project',
-        time: '5 min ago',
-        status: 'online',
-    },
-    // Add more notifications here...
-]);
+const formatTime = (timestamp) => {
+    const now = new Date();
+    const notifTime = new Date(timestamp);
+    const diff = now - notifTime;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return notifTime.toLocaleDateString();
+};
 
 const toggleDropdown = () => {
     dropdownOpen.value = !dropdownOpen.value;
-    notifying.value = false;
+    if (dropdownOpen.value) notifying.value = false;
 };
 
 const closeDropdown = () => {
@@ -243,25 +212,138 @@ const handleClickOutside = (event) => {
     }
 };
 
-const handleItemClick = (event) => {
-    event.preventDefault();
-    // Handle the item click action here
-    console.log('Notification item clicked');
+const handleItemClick = async (notification) => {
+    if (!notification.read) {
+        await fetch(`/notifications/${notification.id}/read`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+        });
+        notification.read = true;
+        notifying.value = notifications.value.some((n) => !n.read);
+    }
     closeDropdown();
+    if (notification.link && notification.link !== '#') {
+        window.location.href = notification.link;
+    }
 };
+
+const unreadCount = computed(
+    () => notifications.value.filter((n) => !n.read).length,
+);
 
 const handleViewAllClick = (event) => {
     event.preventDefault();
-    // Handle the "View All Notification" action here
-    console.log('View All Notifications clicked');
     closeDropdown();
+};
+
+const loadNotifications = async () => {
+    try {
+        const res = await fetch('/notifications', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'include',
+        });
+        const data = await res.json();
+        notifications.value = data.map((n) => ({
+            id: n.id,
+            action: n.data.message,
+            type: n.data.type || 'info',
+            timestamp: n.created_at,
+            read: n.read_at !== null,
+            link: n.data.link || '#',
+            userName: 'System',
+            userImage: n.user.avatar_url || '/images/user/default.jpg',
+            project: '',
+            status: 'online',
+        }));
+        notifying.value = notifications.value.some((n) => !n.read);
+    } catch (e) {
+        console.error('Failed to load notifications:', e);
+    }
+};
+
+const setupEchoListener = () => {
+    const userId = page.props.auth?.user?.id;
+
+    if (!userId) {
+        console.warn('User not logged in');
+        return;
+    }
+
+    if (!window.Echo) {
+        console.warn('Laravel Echo not initialized');
+        return;
+    }
+
+    window.Echo.leave(`user.${userId}`);
+
+    window.Echo.private(`user.${userId}`).listen(
+        '.notification.sent',
+        (data) => {
+            console.log('✅ Notification received:', data);
+            notifications.value.unshift({
+                id: data.id,
+                userName: data.userName || 'System',
+                userImage: data.userImage || '/images/user/default.jpg',
+                action: data.message || '',
+                project: data.project || '',
+                type: data.type || 'info',
+                timestamp: data.timestamp || new Date(),
+                status: 'online',
+                read: false,
+                link: data.link || '#',
+            });
+
+            notifying.value = true;
+
+            if (notifications.value.length > 20) {
+                notifications.value.pop();
+            }
+        },
+    );
+
+    console.log('Echo listening on channel: user.' + userId);
 };
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
+    loadNotifications(); // ✅ page load এ recent notifications আনো
+    setupEchoListener();
 });
 
 onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
+    const userId = page.props.auth?.user?.id;
+    if (window.Echo && userId) {
+        window.Echo.leave(`user.${userId}`);
+    }
 });
 </script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+</style>

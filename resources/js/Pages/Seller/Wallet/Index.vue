@@ -28,13 +28,17 @@
                         <p class="mt-1 text-4xl font-bold">
                             ৳{{ money(wallet.available_balance) }}
                         </p>
-                        <button
-                            @click="openWithdraw"
-                            :disabled="wallet.available_balance <= 0"
-                            class="text-brand-600 mt-5 rounded-xl bg-white px-6 py-2.5 text-sm font-semibold transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                        <Link
+                            :href="route('seller.wallet.withdraw.page')"
+                            :class="
+                                wallet.available_balance <= 0
+                                    ? 'pointer-events-none opacity-60'
+                                    : ''
+                            "
+                            class="text-brand-600 mt-5 inline-block rounded-xl bg-white px-6 py-2.5 text-sm font-semibold transition hover:bg-white/90"
                         >
                             Withdraw
-                        </button>
+                        </Link>
                     </div>
                 </div>
 
@@ -168,90 +172,6 @@
                             class="cursor-default rounded-lg px-3 py-1.5 text-sm text-gray-400 opacity-50"
                         />
                     </template>
-                </div>
-            </div>
-        </div>
-
-        <!-- Withdraw modal -->
-        <div
-            v-if="withdrawing"
-            class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 p-4"
-            @click.self="withdrawing = false"
-        >
-            <div
-                class="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-gray-900"
-            >
-                <h4
-                    class="mb-1 text-lg font-semibold text-gray-800 dark:text-white/90"
-                >
-                    Withdraw Funds
-                </h4>
-                <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                    Available: ৳{{ money(wallet.available_balance) }}
-                </p>
-
-                <!-- payout info -->
-                <div
-                    v-if="payout.bkash_number || payout.bank_account"
-                    class="mb-4 rounded-xl bg-gray-50 p-3 text-sm dark:bg-white/[0.03]"
-                >
-                    <p
-                        v-if="payout.bkash_number"
-                        class="text-gray-600 dark:text-gray-400"
-                    >
-                        bKash: {{ payout.bkash_number }}
-                    </p>
-                    <p
-                        v-if="payout.bank_account"
-                        class="text-gray-600 dark:text-gray-400"
-                    >
-                        {{ payout.bank_name }} — {{ payout.bank_account }}
-                    </p>
-                </div>
-                <p
-                    v-else
-                    class="mb-4 rounded-xl bg-yellow-50 p-3 text-sm text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"
-                >
-                    Add your payout details (bKash/bank) in profile before
-                    withdrawing.
-                </p>
-
-                <label
-                    class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
-                    >Amount</label
-                >
-                <input
-                    v-model="form.amount"
-                    type="number"
-                    :max="wallet.available_balance"
-                    class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                    placeholder="0"
-                />
-                <p
-                    v-if="form.errors.amount"
-                    class="mt-1.5 text-sm text-red-500"
-                >
-                    {{ form.errors.amount }}
-                </p>
-
-                <div class="mt-5 flex justify-end gap-3">
-                    <button
-                        @click="withdrawing = false"
-                        class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        @click="submitWithdraw"
-                        :disabled="form.processing"
-                        class="bg-brand-500 hover:bg-brand-600 rounded-lg px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
-                    >
-                        {{
-                            form.processing
-                                ? 'Requesting...'
-                                : 'Request Withdrawal'
-                        }}
-                    </button>
                 </div>
             </div>
         </div>

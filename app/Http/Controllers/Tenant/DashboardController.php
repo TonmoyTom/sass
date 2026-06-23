@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
-use App\Models\CompanySetting;
 use App\Models\Sale;
 use App\Models\TenantModule;
 use App\Services\TenantAssetService;
@@ -15,12 +14,16 @@ class DashboardController extends Controller
     public function index(TenantAssetService $assets): Response
     {
         $user = auth()->user();
-        $tenant = $user->ownedTenants()->with(['domains', 'owner.info'])->firstOrFail();
+        $tenant = $user->ownedTenants()->with(['domains', 'owner'])->firstOrFail();
 
-        // ── Purchased modules ──
-        $modules = TenantModule::where('tenant_id', $tenant->id)
+        $tenantId = $tenant->id;
+        $now = now();
+        $start = $now->copy()->subMonths(11)->startOfMonth();
+
+        // ── Parallel-friendly: sob query ekসাথে define ──
+        $modules = TenantModule::where('tenant_id', $tenantId)
             ->whereIn('status', ['active', 'purchased', 'trial'])
-            ->with(['module', 'tier'])
+            ->with(['module:id,name,icon', 'tier:id,name'])
             ->get()
             ->map(fn ($tm) => [
                 'id' => $tm->id,
@@ -33,20 +36,24 @@ class DashboardController extends Controller
                 'is_expired' => $tm->expires_at && $tm->expires_at->isPast(),
             ])->values();
 
-        $logoUrl = null;
-        $logoPath = null;
+        // ── 4 query → 1 query ──
+        $stats = Sale::where('tenant_id', $tenantId)
+            ->selectRaw("
+            COALESCE(SUM(amount), 0)                                              as revenue,
+            COUNT(*)                                                               as total_orders,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)                as completed,
+            SUM(CASE WHEN status = 'pending'   THEN 1 ELSE 0 END)                as pending,
+            SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END)           as completed_amount
+        ")
+            ->first();
 
-        $tenant->run(function () use (&$logoPath) {
-            $company = CompanySetting::first();
-            $logoPath = $company?->logo;
-        });
+        $revenue = (float) $stats->revenue;
+        $totalOrders = (int) $stats->total_orders;
+        $completed = (int) $stats->completed;
+        $pending = (int) $stats->pending;
 
-        $now = now();
-        $start = $now->copy()->subMonths(11)->startOfMonth();
-
-        $baseQuery = fn () => Sale::where('tenant_id', $tenant->id);
-
-        $rows = $baseQuery()
+        // ── Chart: শুধু completed + date range ──
+        $rows = Sale::where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->where('sold_at', '>=', $start)
             ->selectRaw("DATE_FORMAT(sold_at, '%Y-%m') as ym, SUM(amount) as t")
@@ -59,29 +66,15 @@ class DashboardController extends Controller
             $chart[] = (float) ($rows[$key] ?? 0);
         }
 
-        $revenue = (float) $baseQuery()->where('status', 'completed')->sum('amount');
-        $totalOrders = $baseQuery()->count();
-        $completed = $baseQuery()->where('status', 'completed')->count();
-        $pending = $baseQuery()->where('status', 'pending')->count();
-
         $thisMonth = $chart[11] ?? 0;
         $lastMonth = $chart[10] ?? 0;
         $changePct = $lastMonth > 0
             ? round((($thisMonth - $lastMonth) / $lastMonth) * 100, 1)
             : ($thisMonth > 0 ? 100 : 0);
 
-        $sales = [
-            'revenue' => $revenue,
-            'change_pct' => $changePct,
-            'total_orders' => $totalOrders,
-            'avg_order_value' => $completed ? round($revenue / $completed) : 0,
-            'pending' => $pending,
-            'chart' => $chart,
-        ];
-
-        // ── Recent orders (ei tenant er) ──
-        $recentOrders = $baseQuery()
-            ->with(['module', 'tier'])
+        // ── Recent orders ──
+        $recentOrders = Sale::where('tenant_id', $tenantId)
+            ->with(['module:id,name', 'tier:id,name'])
             ->latest('sold_at')
             ->take(5)
             ->get()
@@ -94,16 +87,15 @@ class DashboardController extends Controller
                 'status' => $s->status,
             ])->all();
 
-        // ── Owner + tenant meta ──
         $owner = $tenant->owner;
 
         return Inertia::render('Tenant/Dashboard', [
             'tenant' => [
                 'name' => $tenant->name,
                 'status' => $tenant->status,
-                'logo' => $assets->companyLogo($tenant) ?? null,
+                'logo' => $assets->companyLogo($tenant),
                 'domain' => $tenant->domains->first()?->domain,
-                'plan' => optional($modules->first())['tier_name'] ?? 'Free',
+                'plan' => $modules->first()['tier_name'] ?? 'Free',
                 'region' => $tenant->region ?? 'Asia · Dhaka',
                 'renews_at' => $tenant->trial_ends_at?->format('d M Y'),
                 'created_at' => $tenant->created_at?->format('d M Y'),
@@ -112,10 +104,17 @@ class DashboardController extends Controller
                 'name' => $owner?->name,
                 'email' => $owner?->email,
                 'phone' => $owner?->phone,
-                'avatar' => $assets->ownerAvatar($tenant) ?? null,
+                'avatar' => $assets->ownerAvatar($tenant),
                 'role' => 'Owner',
             ],
-            'sales' => $sales,
+            'sales' => [
+                'revenue' => $revenue,
+                'change_pct' => $changePct,
+                'total_orders' => $totalOrders,
+                'avg_order_value' => $completed ? round($revenue / $completed) : 0,
+                'pending' => $pending,
+                'chart' => $chart,
+            ],
             'recentOrders' => $recentOrders,
             'modules' => $modules,
             'stats' => [

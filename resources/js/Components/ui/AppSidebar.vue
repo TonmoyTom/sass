@@ -330,6 +330,11 @@ const menuGroups = [
                         path: '/admin/commissions',
                         pro: false,
                     },
+                    {
+                        name: 'Withdraw',
+                        path: '/admin/withdraw-requests',
+                        pro: false,
+                    },
                 ],
             },
             {

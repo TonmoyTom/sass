@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
-use Nwidart\Modules\Module;
 
 class Seller extends Model
 {
@@ -51,5 +51,10 @@ class Seller extends Model
             ->wherePivot('status', 'approved')
             ->withPivot('status', 'reviewed_at')
             ->withTimestamps();
+    }
+
+    public function withdrawRequests(): HasMany
+    {
+        return $this->hasMany(WithdrawRequest::class, 'seller_id');
     }
 }

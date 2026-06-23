@@ -106,13 +106,13 @@
             <div
                 class="mb-5 flex gap-2 border-b border-gray-200 dark:border-gray-800"
             >
-                <a
+                <Link
                     v-for="tab in tabs"
                     :key="tab.value"
                     :href="
                         tab.value
-                            ? `/commissions?status=${tab.value}`
-                            : '/commissions'
+                            ? `/admin/commissions?status=${tab.value}`
+                            : '/admin/commissions'
                     "
                     class="border-b-2 px-4 py-2.5 text-sm font-medium transition"
                     :class="
@@ -128,7 +128,7 @@
                         class="ml-1 text-xs text-gray-400"
                         >({{ tab.count }})</span
                     >
-                </a>
+                </Link>
             </div>
 
             <!-- table -->
@@ -324,7 +324,7 @@
 
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import { router } from '@inertiajs/vue3';
+import { router ,Link} from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const props = defineProps({

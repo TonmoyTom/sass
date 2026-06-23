@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Events\NotificationSent;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SellerController;
 use App\Http\Controllers\Admin\TenantController;
+use App\Http\Controllers\Admin\WithdrawRequestController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Seller\CommissionController;
 use App\Http\Controllers\Seller\ModuleRequestController;
@@ -27,11 +30,7 @@ use Inertia\Inertia;
 | Tenant routes are in routes/tenant.php (subdomain-based).
 |
 | Route organization:
-| 1. Public routes (no auth)
-| 2. Auth routes (login, register, etc.)
-| 3. Super Admin routes (/admin/*)
-| 4. Seller routes (/seller/*)
-| 5. Tenant Owner routes (/tenant/*)
+
 |
 */
 
@@ -76,6 +75,21 @@ require __DIR__.'/auth.php';
 // ─────────────────────────────────────────────
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/auth-test', function () {
+        return response()->json([
+            'user' => auth()->user(),
+            'session_id' => session()->getId(),
+        ]);
+    });
+    Route::get('/test-notification', function () {
+        NotificationSent::dispatch(
+            'এটি একটি test notification',
+            auth()->id(),
+            'info'
+        );
+
+        return 'Notification sent!';
+    });
 
     // Profile management (for any logged-in user)
     Route::get('/profile', [ProfileController::class, 'edit'])
@@ -89,6 +103,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('profile.avatar.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])
         ->name('profile.destroy');
+    // ✅ Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 
     // Generic dashboard - redirects based on user type
     Route::get('/dashboard', function () {
@@ -141,13 +159,14 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::get('/orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
 
-        // // Withdrawal Requests
-        // Route::get('/withdrawals', [\App\Http\Controllers\Admin\WithdrawalController::class, 'index'])
-        //     ->name('withdrawals.index');
-        // Route::post('/withdrawals/{withdrawal}/approve', [\App\Http\Controllers\Admin\WithdrawalController::class, 'approve'])
-        //     ->name('withdrawals.approve');
-        // Route::post('/withdrawals/{withdrawal}/reject', [\App\Http\Controllers\Admin\WithdrawalController::class, 'reject'])
-        //     ->name('withdrawals.reject');
+        Route::get('/withdraw-requests', [WithdrawRequestController::class, 'index'])
+            ->name('withdraw.index');
+        Route::get('/withdraw-requests/{withdraw}', [WithdrawRequestController::class, 'show'])
+            ->name('withdraw.show');
+        Route::post('/withdraw-requests/{withdraw}/approve', [WithdrawRequestController::class, 'approve'])
+            ->name('withdraw.approve');
+        Route::post('/withdraw-requests/{withdraw}/reject', [WithdrawRequestController::class, 'reject'])
+            ->name('withdraw.reject');
 
         // // Reports & Analytics
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
@@ -190,8 +209,16 @@ Route::middleware(['auth', 'verified', 'seller'])
         // // Wallet
         Route::get('/wallet', [WalletController::class, 'index'])
             ->name('wallet.index');
-        // Route::post('/wallet/withdraw', [\App\Http\Controllers\Seller\WalletController::class, 'withdraw'])
-        //     ->name('wallet.withdraw');
+        Route::get('/wallet/withdraw', [WalletController::class, 'withdrawPage'])
+            ->name('wallet.withdraw.page');
+        Route::post('/wallet/withdraw', [WalletController::class, 'withdraw'])
+            ->name('wallet.withdraw');
+        Route::post('/wallet/payout-details', [WalletController::class, 'updatePayout'])
+            ->name('wallet.payout.update');
+        Route::get('/wallet/withdraw/history', [WalletController::class, 'withdrawHistory'])
+            ->name('wallet.withdraw.history');
+        Route::get('/wallet/withdraw/{withdraw}', [WalletController::class, 'withdrawShow'])
+            ->name('wallet.withdraw.show');
 
     });
 

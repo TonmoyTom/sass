@@ -1,3 +1,4 @@
+import './echo.js'; 
 import '../css/app.css';
 import '../js/bootstrap';
 
@@ -5,6 +6,11 @@ import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, DefineComponent, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
+import { configureEcho } from '@laravel/echo-vue';
+
+configureEcho({
+    broadcaster: 'reverb',
+});
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -35,12 +41,11 @@ function hideLoader() {
     const el = loaderEl;
     loaderEl = null;
     el.classList.remove('gl-show');
-    setTimeout(() => el.remove(), 250);
+    setTimeout(() => el.remove(), 150);
 }
 
 router.on('start', () => {
-    // 250ms delay — fast navigation-e flash korbe na
-    delayTimer = setTimeout(showLoader, 250);
+    delayTimer = setTimeout(showLoader, 100);
 });
 
 router.on('finish', () => {

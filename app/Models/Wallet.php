@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Wallet extends Model
 {
@@ -13,13 +14,18 @@ class Wallet extends Model
 
     protected $casts = [
         'available_balance' => 'decimal:2',
-        'pending_balance'   => 'decimal:2',
-        'total_earned'      => 'decimal:2',
-        'total_withdrawn'   => 'decimal:2',
+        'pending_balance' => 'decimal:2',
+        'total_earned' => 'decimal:2',
+        'total_withdrawn' => 'decimal:2',
     ];
 
     public function seller()
     {
         return $this->belongsTo(Seller::class);
+    }
+
+    public function withdrawRequests(): HasMany
+    {
+        return $this->hasMany(WithdrawRequest::class);
     }
 }

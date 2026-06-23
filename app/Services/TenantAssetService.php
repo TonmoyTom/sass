@@ -37,8 +37,9 @@ class TenantAssetService
         $logoPath = null;
 
         $tenant->run(function () use (&$logoPath) {
-            $company = CompanySetting::first();
-            $logoPath = $company?->logo;
+            $settings = CompanySetting::select('company_name', 'logo')
+                ->first();
+            $logoPath = $settings?->logo;
         });
 
         return $this->url($tenant, $logoPath);
@@ -49,9 +50,8 @@ class TenantAssetService
         $avatarPath = null;
 
         $tenant->run(function () use (&$avatarPath) {
-            // tenant DB er user (owner) — tomar actual model
-            $user = TenantUser::with('info')->first();
-            $avatarPath = $user?->info?->avatar ?? $user?->avatar;
+            $user = TenantUser::select('avatar')->first();
+            $avatarPath = $user?->avatar;
         });
 
         return $this->url($tenant, $avatarPath);
