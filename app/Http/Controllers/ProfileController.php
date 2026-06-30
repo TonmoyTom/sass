@@ -60,6 +60,7 @@ class ProfileController extends Controller
                 'twitter' => $data['twitter'] ?? null,
                 'lnkedin' => $data['linkedin'] ?? null,
                 'instagram' => $data['instagram'] ?? null,
+                'address' => $data['address'] ?? null,
             ]
         );
 

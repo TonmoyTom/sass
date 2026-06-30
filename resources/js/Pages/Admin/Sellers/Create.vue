@@ -81,6 +81,15 @@
                     <div
                         class="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2"
                     >
+
+                        <FormTexera
+                            v-model="form.address"
+                         
+                            placeholder="House, Road, Area"
+                            :error="form.errors.address"
+                            :rows="2"
+                            class="lg:col-span-3"
+                        />
                         <FormInput
                             v-model="form.country"
                             label="Country"
@@ -213,7 +222,9 @@
 </template>
 
 <script setup>
+
 import FormInput from '@/Components/ui/FormInput.vue';
+import FormTexera from '@/Components/ui/FormTexera.vue';
 import FormSelect from '@/Components/ui/FormSelect.vue';
 import PhoneInput from '@/Components/ui/PhoneInput.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
@@ -240,7 +251,8 @@ const form = useForm({
   bank_account: '',
   country: '',       
   city: '',          
-  postal_code: '',   
+  postal_code: '', 
+  address: '',     
 })
 
 const submit = () => {

@@ -31,6 +31,8 @@ class User extends Authenticatable
     use Notifiable;        // For notifications
     // use SoftDeletes;
 
+    protected $connection = 'central';
+
     /**
      * The attributes that are mass assignable.
      */
@@ -222,6 +224,7 @@ class User extends Authenticatable
             UserType::SUPER_ADMIN => route('admin.dashboard'),
             UserType::SELLER => route('seller.dashboard'),
             UserType::TENANT_OWNER => route('tenant.central.dashboard'),
+            UserType::STAFF => route('admin.dashboard'),
         };
     }
 

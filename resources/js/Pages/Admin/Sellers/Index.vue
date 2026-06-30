@@ -111,6 +111,17 @@
                                         Edit
                                     </Link>
                                     <button
+                                        v-if="
+                                            $page.props.auth?.user
+                                                ?.user_type === 'super_admin' &&
+                                            seller.user_id
+                                        "
+                                        @click="loginAsSeller(seller)"
+                                        class="bg-brand-500 hover:bg-brand-600 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-white"
+                                    >
+                                        Login
+                                    </button>
+                                    <button
                                         @click="destroy(seller)"
                                         class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800"
                                     >
@@ -189,5 +200,13 @@ const destroy = (seller) => {
     router.delete(route('admin.sellers.destroy', seller.id), {
         preserveScroll: true,
     });
+};
+
+const loginAsSeller = (seller) => {
+    router.post(
+        route('admin.users.impersonate', seller.user_id),
+        {},
+        { preserveScroll: true },
+    );
 };
 </script>

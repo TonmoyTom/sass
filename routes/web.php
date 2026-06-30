@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Events\NotificationSent;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ImpersonateController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SellerController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\WithdrawRequestController;
@@ -50,7 +52,6 @@ Route::get('/pricing', function () {
 Route::get('/features', function () {
     return Inertia::render('Public/Features');
 })->name('features');
-
 Route::get('/about', function () {
     return Inertia::render('Public/About');
 })->name('about');
@@ -62,6 +63,8 @@ Route::get('/contact', function () {
 Route::get('/become-seller', function () {
     return Inertia::render('Public/BecomeSeller');
 })->name('become-seller');
+
+Route::post('/impersonate/stop', [ImpersonateController::class, 'stop'])->middleware('auth')->name('impersonate.stop');
 
 // ─────────────────────────────────────────────
 // 2. AUTHENTICATION ROUTES
@@ -126,7 +129,6 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
-
         // Tenants management
         Route::resource('tenants', TenantController::class);
         Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
@@ -142,10 +144,14 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         Route::post('/sellers/{seller}/suspend', [SellerController::class, 'suspend'])
             ->name('sellers.suspend');
 
+        Route::get('/module-requests/create', [App\Http\Controllers\Admin\ModuleRequestController::class, 'create'])->name('module-requests.create');
+        Route::post('/module-requests', [App\Http\Controllers\Admin\ModuleRequestController::class, 'store'])->name('module-requests.store');
         Route::get('/module-requests', [App\Http\Controllers\Admin\ModuleRequestController::class, 'index'])->name('module-requests.index');
         Route::get('/module-requests/{moduleRequest}', [App\Http\Controllers\Admin\ModuleRequestController::class, 'show'])->name('module-requests.show');
         Route::post('/module-requests/{moduleRequest}/approve', [App\Http\Controllers\Admin\ModuleRequestController::class, 'approve'])->name('module-requests.approve');
         Route::post('/module-requests/{moduleRequest}/reject', [App\Http\Controllers\Admin\ModuleRequestController::class, 'reject'])->name('module-requests.reject');
+        Route::patch('/module-requests/{moduleRequest}/status', [App\Http\Controllers\Admin\ModuleRequestController::class, 'updateStatus'])->name('module-requests.update-status');
+        Route::patch('/module-requests/{moduleRequest}/note', [App\Http\Controllers\Admin\ModuleRequestController::class, 'updateNote'])->name('module-requests.update-note');
 
         // // Modules management
         Route::resource('modules', ModuleController::class);
@@ -173,6 +179,26 @@ Route::middleware(['auth', 'verified', 'super_admin'])
         Route::get('/reports/revenue', [ReportController::class, 'revenue'])->name('reports.revenue');
         Route::get('/reports/tenants', [ReportController::class, 'tenants'])->name('reports.tenants');
         Route::get('/reports/sellers', [ReportController::class, 'sellers'])->name('reports.sellers');
+
+        Route::prefix('roles')->name('roles.')->group(function () {
+            Route::get('/', [RoleController::class, 'index'])->name('index');
+            Route::get('/create', [RoleController::class, 'create'])->name('create');
+            Route::post('/', [RoleController::class, 'store'])->name('store');
+            Route::get('/{role}/edit', [RoleController::class, 'edit'])->name('edit');
+            Route::put('/{role}', [RoleController::class, 'update'])->name('update');
+            Route::delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::post('/users/{user}/impersonate', [ImpersonateController::class, 'start'])->name('users.impersonate');
+
+        Route::prefix('staff')->name('staff.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\StaffController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Admin\StaffController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Admin\StaffController::class, 'store'])->name('store');
+            Route::get('/{staff}/edit', [App\Http\Controllers\Admin\StaffController::class, 'edit'])->name('edit');
+            Route::put('/{staff}', [App\Http\Controllers\Admin\StaffController::class, 'update'])->name('update');
+            Route::delete('/{staff}', [App\Http\Controllers\Admin\StaffController::class, 'destroy'])->name('destroy');
+        });
 
         // // Settings
         // Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])

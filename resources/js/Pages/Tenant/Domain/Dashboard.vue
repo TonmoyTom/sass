@@ -6,6 +6,8 @@ import {
   ShoppingCart, Plus, TrendingUp, ChevronRight, Globe,
 } from 'lucide-vue-next'
 
+import WorkspaceLayout from '@/Layouts/WorkspaceLayout.vue';
+
 // import AppLayout from '@/Layouts/AppLayout.vue'
 // defineOptions({ layout: AppLayout })
 
@@ -62,6 +64,7 @@ const chart = computed(() => {
 </script>
 
 <template>
+   <WorkspaceLayout title="Edit User">
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="mx-auto max-w-3xl space-y-6 px-4">
 
@@ -277,4 +280,6 @@ const chart = computed(() => {
 
     </div>
   </div>
+  </WorkspaceLayout>
 </template>
+

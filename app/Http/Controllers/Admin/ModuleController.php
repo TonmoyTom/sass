@@ -14,6 +14,15 @@ use Inertia\Response;
 
 class ModuleController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('can:modules.view')->only(['index', 'show']);
+        $this->middleware('can:modules.create')->only(['create', 'store']);
+        $this->middleware('can:modules.edit')->only(['edit', 'update']);
+        $this->middleware('can:modules.delete')->only(['destroy']);
+    }
+    
     public function index(): Response
     {
         $modules = ModulePackage::query()

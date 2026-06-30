@@ -1,6 +1,8 @@
 <template>
     <Head :title="title" />
     <div class="min-h-screen xl:flex">
+        <ImpersonationBanner />
+
         <AppSidebar />
         <Backdrop />
         <div
@@ -18,6 +20,7 @@
 </template>
 
 <script setup>
+import ImpersonationBanner from '@/Components/ui/ImpersonationBanner.vue';
 import { Head } from '@inertiajs/vue3';
 import AppHeader from '../Components/ui/AppHeader.vue';
 import AppSidebar from '../Components/ui/AppSidebar.vue';

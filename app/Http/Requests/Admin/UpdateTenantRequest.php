@@ -35,6 +35,7 @@ class UpdateTenantRequest extends FormRequest
             'facebook'    => ['nullable', 'url', 'max:255'],
             'twitter'     => ['nullable', 'url', 'max:255'],
             'linkedin'    => ['nullable', 'url', 'max:255'],
+            'address' => ['nullable', 'string'],
         ];
     }
 }

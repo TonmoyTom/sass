@@ -182,6 +182,7 @@
                         Address
                     </h5>
                     <dl class="space-y-3">
+                        <Row label="Address" :value="seller.address" />
                         <Row label="Country" :value="seller.country" />
                         <Row label="City/State" :value="seller.city" />
                         <Row label="Postal Code" :value="seller.postal_code" />

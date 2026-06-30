@@ -104,6 +104,17 @@
                                         Edit
                                     </Link>
                                     <button
+                                        v-if="
+                                            $page.props.auth?.user
+                                                ?.user_type === 'super_admin' &&
+                                            tenant.user_id
+                                        "
+                                        @click="loginAsTenant(tenant)"
+                                        class="bg-brand-500 hover:bg-brand-600 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-white"
+                                    >
+                                        Login
+                                    </button>
+                                    <button
                                         v-if="tenant.status !== 'suspended'"
                                         @click="suspend(tenant)"
                                         class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
@@ -194,6 +205,14 @@ const suspend = (tenant) => {
 const reactivate = (tenant) => {
     router.post(
         route('admin.tenants.reactivate', tenant.id),
+        {},
+        { preserveScroll: true },
+    );
+};
+
+const loginAsTenant = (tenant) => {
+    router.post(
+        route('admin.users.impersonate', tenant.user_id),
         {},
         { preserveScroll: true },
     );

@@ -20,6 +20,18 @@
                             <p
                                 class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
                             >
+                                Address
+                            </p>
+                            <p
+                                class="text-sm font-medium text-gray-800 dark:text-white/90"
+                            >
+                                {{ user.info?.address ?? '-' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p
+                                class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400"
+                            >
                                 Country
                             </p>
                             <p
@@ -135,6 +147,13 @@
                             <div
                                 class="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2"
                             >
+                                <FormTexera
+                                    v-model="form.address"
+                                    placeholder="House, Road, Area"
+                                    :error="form.errors.address"
+                                    :rows="2"
+                                    class="lg:col-span-3"
+                                />
                                 <FormInput
                                     v-model="form.country"
                                     label="Country"
@@ -192,6 +211,7 @@ import FormInput from '@/Components/ui/FormInput.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import Modal from '../../../Layouts/ModalLayout.vue';
+import FormTexera from '../FormTexera.vue';
 
 const props = defineProps({
     user: Object,
@@ -200,6 +220,7 @@ const props = defineProps({
 const isModal = ref(false);
 
 const form = useForm({
+    address: props.user?.info?.address ?? '',
     country: props.user?.info?.country ?? '',
     city: props.user?.info?.city ?? '',
     postal_code: props.user?.info?.postal_code ?? '',

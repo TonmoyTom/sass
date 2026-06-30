@@ -14,6 +14,14 @@ use Inertia\Response;
 
 class WithdrawRequestController extends Controller
 {
+
+  public function __construct()
+  {
+      $this->middleware('can:withdraw.view')->only(['index', 'show']);
+      $this->middleware('can:withdraw.approve')->only(['approve']);
+      $this->middleware('can:withdraw.reject')->only(['reject']);
+  }
+  
     public function index(Request $request): Response
     {
         $requests = WithdrawRequest::with(['seller.user'])

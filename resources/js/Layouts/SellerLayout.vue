@@ -1,5 +1,8 @@
 <template>
     <Head :title="title" />
+
+    <ImpersonationBanner />
+
     <div class="min-h-screen xl:flex">
         <SellerSideBar />
         <Backdrop />
@@ -23,5 +26,6 @@ import AppHeader from '../Components/ui/AppHeader.vue';
 import Backdrop from '../Components/ui/Backdrop.vue';
 import { useSidebar } from '../composables/useSidebar.js';
 import SellerSideBar from '@/Components/ui/SellerSideBar.vue';
+import ImpersonationBanner from '@/Components/ui/ImpersonationBanner.vue';
 const { isExpanded, isHovered } = useSidebar();
 </script>

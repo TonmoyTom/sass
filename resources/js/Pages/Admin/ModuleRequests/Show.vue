@@ -132,19 +132,40 @@
                             label="Reviewed At"
                             :value="request.reviewed_at"
                         />
-                        <div v-if="request.admin_note">
-                            <dt
-                                class="text-sm text-gray-500 dark:text-gray-400"
-                            >
-                                Admin Note
-                            </dt>
-                            <dd
-                                class="mt-1 text-sm text-red-600 dark:text-red-400"
-                            >
-                                {{ request.admin_note }}
-                            </dd>
-                        </div>
                     </dl>
+                </section>
+
+                <!-- Admin Note -->
+                <section
+                    class="rounded-2xl border border-gray-200 bg-white p-5 lg:col-span-2 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]"
+                >
+                    <h5
+                        class="mb-4 font-semibold text-gray-800 dark:text-white/90"
+                    >
+                        Admin Note
+                    </h5>
+                    <textarea
+                        v-model="noteForm.admin_note"
+                        rows="3"
+                        placeholder="Internal note likho..."
+                        class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                    ></textarea>
+                    <div class="mt-3 flex items-center justify-between">
+                        <span
+                            v-if="noteForm.recentlySuccessful"
+                            class="text-xs text-green-600 dark:text-green-400"
+                        >
+                            Saved
+                        </span>
+                        <span v-else></span>
+                        <button
+                            @click="saveNote"
+                            :disabled="noteForm.processing"
+                            class="bg-brand-500 hover:bg-brand-600 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                        >
+                            Save Note
+                        </button>
+                    </div>
                 </section>
             </div>
         </div>
@@ -243,6 +264,17 @@ const confirmReject = () => {
     rejectForm.post(route('admin.module-requests.reject', props.request.id), {
         preserveScroll: true,
         onSuccess: () => (rejecting.value = false),
+    });
+};
+
+// Admin note (independent of status)
+const noteForm = useForm({
+    admin_note: props.request.admin_note || '',
+});
+
+const saveNote = () => {
+    noteForm.patch(route('admin.module-requests.update-note', props.request.id), {
+        preserveScroll: true,
     });
 };
 </script>

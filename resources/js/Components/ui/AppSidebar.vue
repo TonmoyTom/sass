@@ -1,7 +1,8 @@
 <template>
     <aside
         :class="[
-            'fixed top-0 left-0 z-99999 mt-16 flex h-screen flex-col border-r border-gray-200 bg-white px-5 text-gray-900 transition-all duration-300 ease-in-out lg:mt-0 dark:border-gray-800 dark:bg-gray-900',
+            'fixed left-0 z-99999 mt-16 flex h-screen flex-col border-r border-gray-200 bg-white px-5 text-gray-900 transition-all duration-300 ease-in-out lg:mt-0 dark:border-gray-800 dark:bg-gray-900',
+            isImpersonating ? 'top-10' : 'top-0',
             {
                 'lg:w-[290px]': isExpanded || isMobileOpen || isHovered,
                 'lg:w-[90px]': !isExpanded && !isHovered,
@@ -244,8 +245,15 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { computed, h } from 'vue';
 
 import {
+    LayoutGrid,
+    Building2,
+    Users,
+    Boxes,
+    ListOrdered,
+    PieChart,
+    ShieldCheck,
+    UserCog,
     ChevronDown as ChevronDownIcon,
-    LayoutGrid as GridIcon,
     MoreHorizontal as HorizontalDots,
 } from 'lucide-vue-next';
 
@@ -254,6 +262,7 @@ import IconLink from '../ui/IconLink.vue';
 
 const page = usePage();
 const currentPath = computed(() => new URL(page.url, 'http://x').pathname);
+const isImpersonating = computed(() => !!page.props.impersonating);
 
 const { isExpanded, isMobileOpen, isHovered, openSubmenu } = useSidebar();
 
@@ -293,87 +302,173 @@ const IconLogo = {
     },
 };
 
-const menuGroups = [
+// ── Permission check ──
+const userPermissions = computed(() => page.props.auth?.permissions ?? []);
+const isSuperAdmin = computed(
+    () => page.props.auth?.user?.user_type === 'super_admin',
+);
+
+const can = (permission) => {
+    if (!permission) return true;
+    if (isSuperAdmin.value) return true;
+    return userPermissions.value.includes(permission);
+};
+
+// ── Raw menu definition (with permission keys) ──
+const rawMenuGroups = [
     {
         title: 'Menu',
         items: [
-            { icon: GridIcon, name: 'Dashboard', path: '/dashboard' },
+            { icon: LayoutGrid, name: 'Dashboard', path: '/dashboard' },
             {
                 name: 'Tenants',
-                icon: GridIcon,
+                icon: Building2,
+                permission: 'tenants.view',
                 subItems: [
                     {
                         name: 'Create',
                         path: '/admin/tenants/create',
-                        pro: false,
+                        permission: 'tenants.create',
                     },
-                    { name: 'List', path: '/admin/tenants', pro: false },
+                    {
+                        name: 'List',
+                        path: '/admin/tenants',
+                        permission: 'tenants.view',
+                    },
                 ],
             },
             {
                 name: 'Sellers',
-                icon: GridIcon,
+                icon: Users,
+                permission: 'sellers.view',
                 subItems: [
                     {
                         name: 'Create',
                         path: '/admin/sellers/create',
-                        pro: false,
+                        permission: 'sellers.create',
                     },
-                    { name: 'List', path: '/admin/sellers', pro: false },
+                    {
+                        name: 'List',
+                        path: '/admin/sellers',
+                        permission: 'sellers.view',
+                    },
                     {
                         name: 'Request',
                         path: '/admin/module-requests',
-                        pro: false,
+                        permission: 'module-requests.view',
                     },
                     {
                         name: 'Commission',
                         path: '/admin/commissions',
-                        pro: false,
+                        permission: 'commissions.view',
                     },
                     {
                         name: 'Withdraw',
                         path: '/admin/withdraw-requests',
-                        pro: false,
+                        permission: 'withdraw.view',
                     },
                 ],
             },
             {
                 name: 'Modules',
-                icon: GridIcon,
+                icon: Boxes,
+                permission: 'modules.view',
                 subItems: [
                     {
                         name: 'Create',
                         path: '/admin/modules/create',
-                        pro: false,
+                        permission: 'modules.create',
                     },
-                    { name: 'List', path: '/admin/modules', pro: false },
+                    {
+                        name: 'List',
+                        path: '/admin/modules',
+                        permission: 'modules.view',
+                    },
                 ],
             },
             {
                 name: 'Orders',
-                icon: GridIcon,
+                icon: ListOrdered,
+                permission: 'orders.view',
                 subItems: [
                     {
                         name: 'List',
                         path: '/admin/orders',
-                        pro: false,
+                        permission: 'orders.view',
                     },
                 ],
             },
             {
                 name: 'Reports',
-                icon: GridIcon,
+                icon: PieChart,
+                permission: 'reports.view',
                 subItems: [
                     {
                         name: 'List',
                         path: '/admin/reports',
-                        pro: false,
+                        permission: 'reports.view',
+                    },
+                ],
+            },
+            {
+                name: 'Staff',
+                icon: UserCog,
+                permission: 'roles.view',
+                subItems: [
+                    {
+                        name: 'Create',
+                        path: '/admin/staff/create',
+                        permission: 'roles.create',
+                    },
+                    {
+                        name: 'List',
+                        path: '/admin/staff',
+                        permission: 'roles.view',
+                    },
+                ],
+            },
+            {
+                name: 'Roles',
+                icon: ShieldCheck,
+                permission: 'roles.view',
+                subItems: [
+                    {
+                        name: 'Create',
+                        path: '/admin/roles/create',
+                        permission: 'roles.create',
+                    },
+                    {
+                        name: 'List',
+                        path: '/admin/roles',
+                        permission: 'roles.view',
                     },
                 ],
             },
         ],
     },
 ];
+
+// ── Filtered menu based on logged-in user's permissions ──
+const menuGroups = computed(() =>
+    rawMenuGroups
+        .map((group) => ({
+            ...group,
+            items: group.items
+                .map((item) => {
+                    if (item.subItems) {
+                        const visibleSubItems = item.subItems.filter((sub) =>
+                            can(sub.permission),
+                        );
+                        if (!visibleSubItems.length) return null;
+                        return { ...item, subItems: visibleSubItems };
+                    }
+                    if (!can(item.permission)) return null;
+                    return item;
+                })
+                .filter(Boolean),
+        }))
+        .filter((group) => group.items.length),
+);
 
 const isActive = (path) => currentPath.value === path;
 
@@ -383,7 +478,7 @@ const toggleSubmenu = (groupIndex, itemIndex) => {
 };
 
 const isAnySubmenuRouteActive = computed(() => {
-    return menuGroups.some((group) =>
+    return menuGroups.value.some((group) =>
         group.items.some(
             (item) =>
                 item.subItems &&
@@ -397,8 +492,8 @@ const isSubmenuOpen = (groupIndex, itemIndex) => {
     return (
         openSubmenu.value === key ||
         (isAnySubmenuRouteActive.value &&
-            menuGroups[groupIndex].items[itemIndex].subItems?.some((subItem) =>
-                isActive(subItem.path),
+            menuGroups.value[groupIndex]?.items[itemIndex]?.subItems?.some(
+                (subItem) => isActive(subItem.path),
             ))
     );
 };

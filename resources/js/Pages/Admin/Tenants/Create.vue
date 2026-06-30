@@ -224,25 +224,37 @@
                         </div>
                     </div>
 
-                    <div
-                        class="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-3"
-                    >
-                        <FormInput
-                            v-model="form.country"
-                            label="Country"
-                            :error="form.errors.country"
-                        />
-                        <FormInput
-                            v-model="form.city"
-                            label="City/State"
-                            :error="form.errors.city"
-                        />
-                        <FormInput
-                            v-model="form.postal_code"
-                            label="Postal Code"
-                            :error="form.errors.postal_code"
-                        />
-                    </div>
+                    <div class="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-3">
+                      <FormTexera
+                          v-model="form.address"
+                        
+                          placeholder="House, Road, Area"
+                          :rows="2"
+                          class="lg:col-span-3"
+                          :error="form.errors.address"
+                      />
+
+                      <FormInput
+                          v-model="form.city"
+                          label="City/State"
+                          placeholder="e.g. Chattogram"
+                          :error="form.errors.city"
+                      />
+
+                      <FormInput
+                          v-model="form.country"
+                          label="Country"
+                          placeholder="e.g. Bangladesh"
+                          :error="form.errors.country"
+                      />
+
+                      <FormInput
+                          v-model="form.postal_code"
+                          label="Postal Code"
+                          placeholder="e.g. 4000"
+                          :error="form.errors.postal_code"
+                      />
+                  </div>
                 </section>
 
                 <!-- Social -->
@@ -346,6 +358,7 @@
 
 <script setup>
 import FormInput from '@/Components/ui/FormInput.vue';
+import FormTexera from '@/Components/ui/FormTexera.vue';
 import PhoneInput from '@/Components/ui/PhoneInput.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
@@ -369,6 +382,7 @@ const form = useForm({
     facebook: '',
     twitter: '',
     linkedin: '',
+    address: '',
 });
 
 const submit = () => {

@@ -13,6 +13,14 @@ use Inertia\Response;
 
 class ReportController extends Controller
 {
+
+  public function __construct()
+  {
+      $this->middleware('can:reports.view')->only(['index']);
+      $this->middleware('can:reports.revenue')->only(['revenue']);
+      $this->middleware('can:reports.tenants')->only(['tenants']);
+      $this->middleware('can:reports.sellers')->only(['sellers']);
+  }
     public function index(): Response
     {
         $start = now()->subDays(29)->startOfDay();  // last 30 days

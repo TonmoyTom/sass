@@ -15,6 +15,18 @@ use Inertia\Response;
 
 class SellerController extends Controller
 {
+
+  public function __construct()
+  {
+      $this->middleware('can:sellers.view')->only(['index', 'show']);
+      $this->middleware('can:sellers.create')->only(['create', 'store']);
+      $this->middleware('can:sellers.edit')->only(['edit', 'update']);
+      $this->middleware('can:sellers.delete')->only(['destroy']);
+      $this->middleware('can:sellers.approve')->only(['approve']);
+      $this->middleware('can:sellers.reject')->only(['reject']);
+      $this->middleware('can:sellers.suspend')->only(['suspend']);
+      $this->middleware('can:sellers.approve')->only(['start']); 
+  }
     public function index(): Response
     {
         $sellers = Seller::query()
@@ -23,6 +35,7 @@ class SellerController extends Controller
             ->paginate(15)
             ->through(fn ($s) => [
                 'id' => $s->id,
+                'user_id' => $s->user_id,
                 'name' => $s->user?->name,
                 'email' => $s->user?->email,
                 'referral_code' => $s->referral_code,
@@ -63,6 +76,7 @@ class SellerController extends Controller
                 'country' => $data['country'] ?? null,
                 'city' => $data['city'] ?? null,
                 'postal_code' => $data['postal_code'] ?? null,
+                'address' => $data['address'] ?? null,
             ]);
 
             // 2. seller profile
@@ -102,6 +116,7 @@ class SellerController extends Controller
                 'name' => $seller->user?->name,
                 'email' => $seller->user?->email,
                 'phone' => $seller->user?->phone,
+                'address' => $seller->user?->info->address,
                 'referral_code' => $seller->referral_code,
                 'status' => $seller->status,
                 'commission_rate' => $seller->commission_rate,
@@ -137,6 +152,7 @@ class SellerController extends Controller
                 'id' => $seller->id,
                 'first_name' => $seller->user?->info?->first_name ?? '',
                 'last_name' => $seller->user?->info?->last_name ?? '',
+                'address' => $seller->user?->info?->address ?? '',
                 'email' => $seller->user?->email ?? '',
                 'phone' => $seller->user?->phone ?? '',
                 'referral_code' => $seller->referral_code,
@@ -180,6 +196,7 @@ class SellerController extends Controller
                         'country' => $data['country'] ?? null,
                         'city' => $data['city'] ?? null,
                         'postal_code' => $data['postal_code'] ?? null,
+                        'address' => $data['address'] ?? null,
                     ]
                 );
             }

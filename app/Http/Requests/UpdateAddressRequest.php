@@ -14,10 +14,11 @@ class UpdateAddressRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'country'     => ['nullable', 'string', 'max:100'],
-            'city'        => ['nullable', 'string', 'max:100'],
+            'address' => ['nullable', 'string'],
+            'country' => ['nullable', 'string', 'max:100'],
+            'city' => ['nullable', 'string', 'max:100'],
             'postal_code' => ['nullable', 'string', 'max:20'],
-            'tx_id'       => ['nullable', 'string', 'max:50'],
+            'tx_id' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

@@ -21,16 +21,18 @@ class DatabaseSeeder extends Seeder
             // Order matters!
 
             // 1. Roles & Permissions FIRST (needed before creating users)
-            RolesAndPermissionsSeeder::class,
+            // RolesAndPermissionsSeeder::class,
 
             // 2. Default super admin
-            SuperAdminSeeder::class,
+            // SuperAdminSeeder::class,
 
             // 3. Subscription plans (uncomment when created)
             // SubscriptionPlansSeeder::class,
 
             // 4. Settings (uncomment when created)
             // SettingsSeeder::class,
-        ]);
+
+            AdminPermissionSeeder::class
+        ]); 
     }
 }

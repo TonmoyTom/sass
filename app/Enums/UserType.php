@@ -15,16 +15,18 @@ enum UserType: string
     case SUPER_ADMIN = 'super_admin';
     case SELLER = 'seller';
     case TENANT_OWNER = 'tenant_owner';
+    case STAFF = 'staff';
 
     /**
      * Get human-readable label.
      */
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::SUPER_ADMIN => 'Super Admin',
             self::SELLER => 'Seller',
             self::TENANT_OWNER => 'Tenant Owner',
+            self::STAFF => 'staff',
         };
     }
 
@@ -33,7 +35,7 @@ enum UserType: string
      */
     public function icon(): string
     {
-        return match($this) {
+        return match ($this) {
             self::SUPER_ADMIN => 'shield',
             self::SELLER => 'user',
             self::TENANT_OWNER => 'building',

@@ -120,6 +120,14 @@
                     <div
                         class="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-3"
                     >
+                        <FormTexera
+                            v-model="form.address"
+                           
+                            placeholder="House, Road, Area"
+                            :error="form.errors.address"
+                            :rows="2"
+                            class="lg:col-span-3"
+                        />
                         <FormInput
                             v-model="form.country"
                             label="Country"
@@ -190,7 +198,8 @@
 
 <script setup>
 import FormInput from '@/Components/ui/FormInput.vue';
-import FormSelect from '@/Components/ui/FormSelect.vue';
+import FormSelect from '@/Components/ui/FormSelect.vue';  
+import FormTexera from '@/Components/ui/FormTexera.vue';
 import PhoneInput from '@/Components/ui/PhoneInput.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
@@ -215,6 +224,7 @@ const form = useForm({
     facebook: props.tenant.facebook,
     twitter: props.tenant.twitter,
     linkedin: props.tenant.linkedin,
+    address: props.tenant.address,
 });
 
 const submit = () => {

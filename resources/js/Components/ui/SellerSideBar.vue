@@ -1,7 +1,8 @@
 <template>
     <aside
         :class="[
-            'fixed top-0 left-0 z-99999 mt-16 flex h-screen flex-col border-r border-gray-200 bg-white px-5 text-gray-900 transition-all duration-300 ease-in-out lg:mt-0 dark:border-gray-800 dark:bg-gray-900',
+            'fixed left-0 z-99999 mt-16 flex h-screen flex-col border-r border-gray-200 bg-white px-5 text-gray-900 transition-all duration-300 ease-in-out lg:mt-0 dark:border-gray-800 dark:bg-gray-900',
+            isImpersonating ? 'top-10' : 'top-0',
             {
                 'lg:w-[290px]': isExpanded || isMobileOpen || isHovered,
                 'lg:w-[90px]': !isExpanded && !isHovered,
@@ -254,6 +255,7 @@ import IconLink from '../ui/IconLink.vue';
 
 const page = usePage();
 const currentPath = computed(() => new URL(page.url, 'http://x').pathname);
+const isImpersonating = computed(() => !!page.props.impersonating);
 
 const { isExpanded, isMobileOpen, isHovered, openSubmenu } = useSidebar();
 

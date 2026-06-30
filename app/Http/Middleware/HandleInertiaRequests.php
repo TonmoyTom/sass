@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\CompanySetting;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Services\TenantAssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -20,12 +21,18 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
+        $impersonatorId = session('impersonator_id');
+        $user = $request->user();
+
         return [
             ...parent::share($request),
-
+            'impersonating' => (bool) $impersonatorId,
+            'impersonator' => $impersonatorId
+                ? User::find($impersonatorId)?->only(['id', 'name'])
+                : null,
             'auth' => [
-                // full model na pathiye dorkari field gulai pathao (payload chhoto + safe)
-                'user' => fn () => $request->user()?->only('id', 'name', 'email'),
+                'permissions' => $user ? $user->getAllPermissions()->pluck('name') : [],
+                'user' => fn () => $user?->only('id', 'name', 'email', 'user_type'),
             ],
 
             // ── central side: owner's tenant ──
@@ -77,8 +84,9 @@ class HandleInertiaRequests extends Middleware
             now()->addMinutes(15),
             function () use ($tenantId) {
                 $t = Tenant::on('mysql')->find($tenantId);
-                $settings = CompanySetting::select('company_name', 'logo_url')
+                $settings = CompanySetting::select('company_name', 'logo')
                     ->first();
+
                 return [
                     'company_name' => $settings->company_name ?? 'Workspace',
                     'logo_url' => $settings->logo_url,

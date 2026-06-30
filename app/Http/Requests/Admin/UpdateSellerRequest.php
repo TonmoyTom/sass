@@ -32,6 +32,7 @@ class UpdateSellerRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:20'],
             'postal_code' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string'],
             'nid_verified' => ['boolean'],
         ];
     }

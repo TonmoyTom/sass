@@ -1,5 +1,7 @@
 <template>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+        <ImpersonationBanner />
+
         <header
             class="sticky top-0 z-50 flex h-12 items-center bg-white/5 px-8 backdrop-blur-md dark:bg-gray-950/80"
         >
@@ -58,7 +60,7 @@
 
                 <div class="mt-5 flex gap-3">
                     <Link
-                        href="/workspace"
+                        href="/tenant/workspace/open"
                         class="bg-brand-500 hover:bg-brand-600 flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white"
                     >
                         <ExternalLink class="h-4 w-4" /> Login as tenant
@@ -81,7 +83,8 @@
 </template>
 
 <script setup>
-import ThemeToggler from '@/components/common/ThemeToggler.vue';
+import ThemeToggler from '@/Components/common/ThemeToggler.vue';
+import ImpersonationBanner from '@/Components/ui/ImpersonationBanner.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { ExternalLink, Globe, Image, LogOut } from 'lucide-vue-next';
 import { computed, h } from 'vue';

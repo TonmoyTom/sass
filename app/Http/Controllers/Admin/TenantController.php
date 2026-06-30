@@ -19,6 +19,17 @@ use Spatie\Permission\Models\Role;
 
 class TenantController extends Controller
 {
+
+  public function __construct()
+  {
+      $this->middleware('can:tenants.view')->only(['index', 'show']);
+      $this->middleware('can:tenants.create')->only(['create', 'store']);
+      $this->middleware('can:tenants.edit')->only(['edit', 'update']);
+      $this->middleware('can:tenants.delete')->only(['destroy']);
+      $this->middleware('can:tenants.suspend')->only(['suspend']);
+      $this->middleware('can:tenants.reactivate')->only(['reactivate']);
+      $this->middleware('can:tenants.impersonate')->only(['impersonate']);
+  }
     public function index(): Response
     {
         $tenants = Tenant::query()
@@ -28,6 +39,7 @@ class TenantController extends Controller
             ->paginate(15)
             ->through(fn ($tenant) => [
                 'id' => $tenant->id,
+                'user_id' => $tenant->owner_id,
                 'name' => $tenant->name,
                 'subdomain' => $tenant->subdomain,
                 'email' => $tenant->email,
@@ -72,6 +84,7 @@ class TenantController extends Controller
                 'facebook' => $data['facebook'] ?? null,
                 'twitter' => $data['twitter'] ?? null,
                 'lnkedin' => $data['linkedin'] ?? null,
+                'address' => $data['address'] ?? null,
             ]);
 
             return $owner;
@@ -129,6 +142,7 @@ class TenantController extends Controller
                     'twitter' => $tenant->owner?->info?->twitter,
                     'linkedin' => $tenant->owner?->info?->lnkedin,
                     'instagram' => $tenant->owner?->info?->instagram,
+                    'address' => $tenant->owner?->info?->address ?? '',
                 ],
             ],
         ]);
@@ -154,6 +168,7 @@ class TenantController extends Controller
                 'facebook' => $tenant->owner?->info?->facebook ?? '',
                 'twitter' => $tenant->owner?->info?->twitter ?? '',
                 'linkedin' => $tenant->owner?->info?->lnkedin ?? '',
+                'address' => $tenant->owner?->info?->address ?? '',
             ],
             'centralDomain' => config('tenancy.central_domains')[0] ?? 'localhost',
             'statuses' => [
@@ -197,6 +212,7 @@ class TenantController extends Controller
                         'facebook' => $data['facebook'] ?? null,
                         'twitter' => $data['twitter'] ?? null,
                         'lnkedin' => $data['linkedin'] ?? null,
+                        'address' => $data['address'] ?? null,
                     ]
                 );
             }

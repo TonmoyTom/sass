@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ModulePackage;
+use App\Models\Seller;
 use App\Models\SellerModuleRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,6 +13,16 @@ use Inertia\Response;
 
 class ModuleRequestController extends Controller
 {
+
+      public function __construct()
+    {
+        $this->middleware('can:module-requests.view')->only(['index', 'show']);
+        $this->middleware('can:module-requests.create')->only(['create', 'store']);
+        $this->middleware('can:module-requests.approve')->only(['approve']);
+        $this->middleware('can:module-requests.reject')->only(['reject']);
+        $this->middleware('can:module-requests.update-status')->only(['updateStatus']);
+        $this->middleware('can:module-requests.update-note')->only(['updateNote']);
+    }
     public function index(Request $request): Response
     {
         $requests = SellerModuleRequest::query()
@@ -37,6 +49,57 @@ class ModuleRequestController extends Controller
             'requests' => $requests,
             'filters' => ['status' => $request->status],
         ]);
+    }
+
+    public function create(): Response
+    {
+        $sellers = Seller::with('user')
+            ->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->user?->name,
+                'email' => $s->user?->email,
+            ]);
+ 
+        $modules = ModulePackage::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name', 'alias', 'module_category']);
+ 
+        return Inertia::render('Admin/ModuleRequests/Create', [
+            'sellers' => $sellers,
+            'modules' => $modules,
+        ]);
+    }
+
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'seller_id' => ['required', 'exists:sellers,id'],
+            'module_id' => ['required', 'exists:modules,id'],
+            'note' => ['nullable', 'string', 'max:500'],
+            'auto_approve' => ['nullable', 'boolean'],
+        ]);
+ 
+        $exists = SellerModuleRequest::where('seller_id', $data['seller_id'])
+            ->where('module_id', $data['module_id'])
+            ->exists();
+ 
+        if ($exists) {
+            return back()->with('error', 'Ei seller-er jonno ei module-er request already ache.');
+        }
+ 
+        SellerModuleRequest::create([
+            'seller_id' => $data['seller_id'],
+            'module_id' => $data['module_id'],
+            'status' => !empty($data['auto_approve']) ? 'approved' : 'pending',
+            'note' => $data['note'] ?? null,
+            'reviewed_at' => !empty($data['auto_approve']) ? now() : null,
+        ]);
+ 
+        return redirect()
+            ->route('admin.module-requests.index')
+            ->with('status', 'Seller-er jonno module request create kora hoyeche.');
     }
 
     public function approve(SellerModuleRequest $moduleRequest): RedirectResponse
@@ -98,5 +161,34 @@ class ModuleRequestController extends Controller
                 ],
             ],
         ]);
+    }
+
+    public function updateStatus(Request $request, SellerModuleRequest $moduleRequest): RedirectResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:pending,approved,rejected'],
+            'admin_note' => ['nullable', 'string', 'max:500'],
+        ]);
+ 
+        $moduleRequest->update([
+            'status' => $data['status'],
+            'admin_note' => $data['status'] === 'rejected' ? ($data['admin_note'] ?? $moduleRequest->admin_note) : null,
+            'reviewed_at' => $data['status'] === 'pending' ? null : now(),
+        ]);
+ 
+        return back()->with('status', 'Request status update kora hoyeche.');
+    }
+
+    public function updateNote(Request $request, SellerModuleRequest $moduleRequest): RedirectResponse
+    {
+        $data = $request->validate([
+            'admin_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+ 
+        $moduleRequest->update([
+            'admin_note' => $data['admin_note'] ?? null,
+        ]);
+ 
+        return back()->with('status', 'Note save kora hoyeche.');
     }
 }

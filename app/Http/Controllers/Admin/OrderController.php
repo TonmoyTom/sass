@@ -10,6 +10,12 @@ use Inertia\Response;
 
 class OrderController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('can:orders.view')->only(['index', 'show']);
+        $this->middleware('can:orders.invoice')->only(['invoice']);
+    }
     public function index(Request $request): Response
     {
         $orders = Sale::query()

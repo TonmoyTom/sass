@@ -24,10 +24,15 @@ class StoreSellerRequest extends FormRequest
             'password'        => ['required', 'confirmed', Password::defaults()],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status'          => ['required', Rule::in(['active', 'suspended', 'pending'])],
-            'bank_name'       => ['nullable', 'string', 'max:100'],
-            'bank_account'    => ['nullable', 'string', 'max:50'],
-            'bkash_number'    => ['nullable', 'string', 'max:20'],
-            'nid_number'      => ['nullable', 'string', 'max:20'],
+            'bank_name' => ['nullable', 'string', 'max:100'],
+            'bank_account' => ['nullable', 'string', 'max:50'],
+            'bkash_number' => ['nullable', 'string', 'max:20'],
+            'nid_number' => ['nullable', 'string', 'max:20'],
+            'city' => ['nullable', 'string', 'max:20'],
+            'country' => ['nullable', 'string', 'max:20'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string'],
+            'nid_verified' => ['boolean'],
         ];
     }
 }

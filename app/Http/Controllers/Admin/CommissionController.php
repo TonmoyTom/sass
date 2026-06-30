@@ -13,6 +13,12 @@ use Inertia\Response;
 
 class CommissionController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:commissions.view')->only(['index']);
+        $this->middleware('can:commissions.approve')->only(['approve', 'approveDue']);
+        $this->middleware('can:commissions.reject')->only(['reject']);
+    }
     public function index(Request $request): Response
     {
         $commissions = Commission::query()

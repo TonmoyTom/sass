@@ -4,7 +4,7 @@
             class="rounded-2xl border border-gray-200 bg-white p-5 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]"
         >
             <div
-                class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+                class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
             >
                 <h3
                     class="text-lg font-semibold text-gray-800 dark:text-white/90"
@@ -12,25 +12,39 @@
                     Module Requests
                 </h3>
 
-                <!-- status filter -->
-                <div class="flex gap-1">
-                    <Link
-                        v-for="f in statusFilters"
-                        :key="f.value"
-                        :href="
-                            route(
-                                'admin.module-requests.index',
-                                f.value ? { status: f.value } : {},
-                            )
-                        "
-                        class="rounded-lg px-3 py-1.5 text-sm font-medium"
-                        :class="
-                            (filters.status ?? '') === f.value
-                                ? 'bg-brand-500 text-white'
-                                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.05]'
-                        "
+                <div
+                    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:justify-end"
+                >
+                    <!-- status filter -->
+                    <div
+                        class="flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 dark:bg-white/[0.03]"
                     >
-                        {{ f.label }}
+                        <Link
+                            v-for="f in statusFilters"
+                            :key="f.value"
+                            :href="
+                                route(
+                                    'admin.module-requests.index',
+                                    f.value ? { status: f.value } : {},
+                                )
+                            "
+                            class="rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap"
+                            :class="
+                                (filters.status ?? '') === f.value
+                                    ? 'bg-white text-brand-600 shadow-sm dark:bg-white/10 dark:text-brand-400'
+                                    : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                            "
+                        >
+                            {{ f.label }}
+                        </Link>
+                    </div>
+
+                    <Link
+                        :href="route('admin.module-requests.create')"
+                        class="bg-brand-500 hover:bg-brand-600 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium text-white"
+                    >
+                        <span class="text-base leading-none">+</span>
+                        New Request
                     </Link>
                 </div>
             </div>
@@ -133,20 +147,16 @@
                                     >
                                         View
                                     </Link>
-                                    <template v-if="req.status === 'pending'">
-                                        <button
-                                            @click="approve(req)"
-                                            class="rounded-lg border border-green-300 px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 dark:border-green-800"
-                                        >
-                                            Approve
-                                        </button>
-                                        <button
-                                            @click="openReject(req)"
-                                            class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800"
-                                        >
-                                            Reject
-                                        </button>
-                                    </template>
+                                    <select
+                                        :value="req.status"
+                                        @change="changeStatus(req, $event.target.value)"
+                                        class="rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                        :class="statusSelectClass(req.status)"
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
                                 </div>
                             </td>
                         </tr>
@@ -259,10 +269,27 @@ const statusClass = (status) =>
             'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     })[status] ?? 'bg-gray-100 text-gray-700';
 
-const approve = (req) => {
-    router.post(
-        route('admin.module-requests.approve', req.id),
-        {},
+const statusSelectClass = (status) =>
+    ({
+        pending:
+            'border-yellow-300 text-yellow-700 dark:border-yellow-800 dark:text-yellow-400',
+        approved:
+            'border-green-300 text-green-700 dark:border-green-800 dark:text-green-400',
+        rejected:
+            'border-red-300 text-red-700 dark:border-red-800 dark:text-red-400',
+    })[status] ?? '';
+
+const changeStatus = (req, newStatus) => {
+    if (newStatus === req.status) return;
+
+    if (newStatus === 'rejected') {
+        openReject(req);
+        return;
+    }
+
+    router.patch(
+        route('admin.module-requests.update-status', req.id),
+        { status: newStatus },
         { preserveScroll: true },
     );
 };

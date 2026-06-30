@@ -135,6 +135,7 @@
                         Address
                     </h5>
                     <dl class="space-y-3">
+                        <Row label="Address" :value="tenant.owner.address" />
                         <Row label="Country" :value="tenant.owner.country" />
                         <Row label="City/State" :value="tenant.owner.city" />
                         <Row

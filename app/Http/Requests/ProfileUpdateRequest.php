@@ -22,6 +22,7 @@ class ProfileUpdateRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', Rule::unique(User::class)->ignore($this->user()->id)],
             'phone' => ['nullable', 'string', 'regex:/^\+[1-9]\d{6,14}$/'],
             'bio' => ['nullable', 'string', 'max:500'],
+            'address' => ['nullable', 'string'],
             'facebook' => ['nullable', 'url'],
             'twitter' => ['nullable', 'url'],
             'linkedin' => ['nullable', 'url'],

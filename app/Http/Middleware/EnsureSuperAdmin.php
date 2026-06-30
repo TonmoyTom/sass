@@ -12,7 +12,9 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * EnsureSuperAdmin Middleware
  *
- * Restricts route access to super admin users only.
+ * Restricts route access to super admin and staff users only.
+ * Fine-grained permission checks (per-route) are handled separately
+ * via Spatie's `can:` middleware inside individual controllers.
  *
  * Usage in routes:
  * Route::middleware(['auth', 'super_admin'])->group(function () {
@@ -29,12 +31,13 @@ class EnsureSuperAdmin
             return redirect()->route('login');
         }
 
-        if (!$user->isSuperAdmin()) {
-            // Not a super admin — redirect to their dashboard
+        $isAllowed = $user->isSuperAdmin() || $user->hasRole('staff');
+
+        if (!$isAllowed) {
+            // Not authorized for admin area — redirect to their dashboard
             if ($request->wantsJson()) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }
-
             abort(403, 'You are not authorized to access this area.');
         }
 
