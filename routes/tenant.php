@@ -6,8 +6,11 @@ use App\Http\Controllers\Tenant\Domain\DashboardController;
 use App\Http\Controllers\Tenant\Domain\ProfileController;
 use App\Http\Controllers\Tenant\Domain\RoleController;
 use App\Http\Controllers\Tenant\Domain\SettingController;
+use App\Http\Controllers\Tenant\Domain\SiteSettingController;
+use App\Http\Controllers\Tenant\Domain\TenantSitemapController;
 use App\Http\Controllers\Tenant\Domain\UserController;
 use App\Models\CompanySetting;
+use App\Models\SiteSetting;
 use App\Models\TenantLoginToken;
 use App\Models\TenantUser;
 use Illuminate\Http\Request;
@@ -57,6 +60,24 @@ Route::middleware([
         return Inertia::render('Tenant/Auth/Login');
     })->name('tenant.login');
 
+    Route::get('/', function () {
+        $setting = SiteSetting::where('page_key', 'home')->with('seo')->first();
+
+        return Inertia::render('Public/Domain/Home', [
+            'seo' => $setting?->frontSeoArray() ?? [
+                'title' => tenant('name'),
+                'description' => 'Welcome to '.(tenant('name') ?? config('app.name')),
+                'canonical' => url('/'),
+                'robots' => 'index,follow',
+                'og_type' => 'website',
+                'twitter_card' => 'summary_large_image',
+            ],
+        ]);
+    })->name('tenant.home');
+
+    Route::get('/sitemap.xml', [TenantSitemapController::class, 'index'])->name('tenant.sitemap');
+    Route::get('/robots.txt', [TenantSitemapController::class, 'robots'])->name('tenant.robots');
+
     // authenticated tenant routes
     Route::middleware(['auth'])->group(function () {
         Route::get('/', function () {
@@ -72,5 +93,12 @@ Route::middleware([
         Route::post('/settings/logo', [SettingController::class, 'updateLogo'])->name('tenant.settings.logo');
         Route::resource('/roles', RoleController::class)->names('tenant.roles');
         Route::resource('users', UserController::class)->names('tenant.users');
+
+        Route::get('/settings/seo', [SiteSettingController::class, 'index'])->name('tenant.site-settings.index');
+        Route::get('/settings/seo/create', [SiteSettingController::class, 'create'])->name('tenant.site-settings.create');
+        Route::post('/settings/seo', [SiteSettingController::class, 'store'])->name('tenant.site-settings.store');
+        Route::get('/settings/seo/{setting}/edit', [SiteSettingController::class, 'edit'])->name('tenant.site-settings.edit');
+        Route::put('/settings/seo/{setting}', [SiteSettingController::class, 'updateSeo'])->name('tenant.site-settings.seo.update');
+        Route::delete('/settings/seo/{setting}', [SiteSettingController::class, 'destroy'])->name('tenant.site-settings.destroy');
     });
 });

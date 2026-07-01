@@ -1,5 +1,5 @@
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
     <div class="min-h-screen xl:flex">
         <WorkspaceSidebar />
         <Backdrop />
@@ -16,7 +16,8 @@
 </template>
 
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import AppHeader from '../Components/ui/AppHeader.vue';
 import Backdrop from '../Components/ui/Backdrop.vue';
 import WorkspaceSidebar from '../Components/ui/WorkspaceSidebar.vue';
@@ -24,7 +25,15 @@ import { useSidebar } from '../composables/useSidebar.js';
 
 const { isExpanded, isHovered } = useSidebar();
 
-defineProps({
+const props = defineProps({
     title: { type: String, default: 'Workspace' },
 });
+
+const page = usePage();
+
+const companyName = computed(
+    () => page.props.workspace?.company_name ?? 'Workspace',
+);
+
+const pageTitle = computed(() => `${props.title} - ${companyName.value}`);
 </script>

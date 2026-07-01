@@ -110,7 +110,7 @@ const statusPill = (s) =>
 
 const FullLogo = {
     render() {
-        return [
+        return h('span', { class: 'inline-flex' }, [
             h('img', {
                 class: 'dark:hidden',
                 src: '/logo/allsphare_logo.png',
@@ -125,7 +125,7 @@ const FullLogo = {
                 width: 32,
                 height: 32,
             }),
-        ];
+        ]);
     },
 };
 </script>

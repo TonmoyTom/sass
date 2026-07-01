@@ -245,16 +245,17 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { computed, h } from 'vue';
 
 import {
-    LayoutGrid,
-    Building2,
-    Users,
     Boxes,
-    ListOrdered,
-    PieChart,
-    ShieldCheck,
-    UserCog,
+    Building2,
     ChevronDown as ChevronDownIcon,
     MoreHorizontal as HorizontalDots,
+    LayoutGrid,
+    ListOrdered,
+    PieChart,
+    Search,
+    ShieldCheck,
+    UserCog,
+    Users,
 } from 'lucide-vue-next';
 
 import { useSidebar } from '@/composables/useSidebar';
@@ -272,7 +273,7 @@ const showFullLogo = computed(
 
 const FullLogo = {
     render() {
-        return [
+        return h('span', { class: 'inline-flex' }, [
             h('img', {
                 class: 'dark:hidden',
                 src: '/logo/allsphare_logo.png',
@@ -287,7 +288,7 @@ const FullLogo = {
                 width: 32,
                 height: 32,
             }),
-        ];
+        ]);
     },
 };
 
@@ -441,6 +442,23 @@ const rawMenuGroups = [
                         name: 'List',
                         path: '/admin/roles',
                         permission: 'roles.view',
+                    },
+                ],
+            },
+            {
+                name: 'Site Settings',
+                icon: Search,
+                permission: 'settings.view',
+                subItems: [
+                    {
+                        name: 'Create',
+                        path: '/admin/site-settings/create',
+                        permission: 'settings.create',
+                    },
+                    {
+                        name: 'List',
+                        path: '/admin/site-settings',
+                        permission: 'settings.view',
                     },
                 ],
             },

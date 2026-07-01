@@ -57,15 +57,73 @@
 
                 <div class="flex flex-col gap-1">
                     <!-- base items -->
-                    <SidebarLink
-                        v-for="item in baseItems"
-                        :key="item.href"
-                        :href="item.href"
-                        :label="item.label"
-                        :icon="item.icon"
-                        :active="isActive(item.href)"
-                        :collapsed="collapsed"
-                    />
+                    <template v-for="item in baseItems" :key="item.key">
+                        <!-- item WITHOUT sub-items -->
+                        <SidebarLink
+                            v-if="!item.subItems"
+                            :href="item.href"
+                            :label="item.label"
+                            :icon="item.icon"
+                            :active="isActive(item.href)"
+                            :collapsed="collapsed"
+                        />
+
+                        <!-- item WITH sub-items (accordion dropdown) -->
+                        <div v-else>
+                            <button
+                                type="button"
+                                class="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition"
+                                :class="[
+                                    isSubmenuActive(item)
+                                        ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-500/10'
+                                        : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]',
+                                    collapsed ? 'lg:justify-center' : '',
+                                ]"
+                                @click="toggleSubmenu(item.key)"
+                            >
+                                <span
+                                    class="flex h-5 w-5 flex-shrink-0 items-center justify-center"
+                                >
+                                    <component
+                                        :is="icons[item.icon]"
+                                        class="h-5 w-5"
+                                    />
+                                </span>
+                                <template v-if="!collapsed">
+                                    <span class="truncate">{{
+                                        item.label
+                                    }}</span>
+                                    <ChevronRight
+                                        class="ml-auto h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                                        :class="{
+                                            'rotate-90':
+                                                openSubmenu === item.key,
+                                        }"
+                                    />
+                                </template>
+                            </button>
+
+                            <!-- sub items -->
+                            <div
+                                v-show="openSubmenu === item.key && !collapsed"
+                                class="mt-1 flex flex-col gap-1 pl-8"
+                            >
+                                <Link
+                                    v-for="sub in item.subItems"
+                                    :key="sub.href"
+                                    :href="sub.href"
+                                    class="truncate rounded-lg px-3 py-2 text-sm transition"
+                                    :class="
+                                        isActive(sub.href)
+                                            ? 'text-brand-600 dark:text-brand-400 font-medium'
+                                            : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
+                                    "
+                                >
+                                    {{ sub.label }}
+                                </Link>
+                            </div>
+                        </div>
+                    </template>
 
                     <!-- module groups (click → drill down) -->
                     <button
@@ -78,23 +136,12 @@
                     >
                         <span
                             class="flex h-5 w-5 flex-shrink-0 items-center justify-center"
-                            v-html="icons[mod.icon]"
-                        />
+                        >
+                            <component :is="icons[mod.icon]" class="h-5 w-5" />
+                        </span>
                         <template v-if="!collapsed">
                             <span class="truncate">{{ mod.label }}</span>
-                            <svg
-                                class="ml-auto h-4 w-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <path
-                                    d="M9 18l6-6-6-6"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                            </svg>
+                            <ChevronRight class="ml-auto h-4 w-4" />
                         </template>
                     </button>
                 </div>
@@ -108,19 +155,7 @@
                     class="text-brand-600 dark:text-brand-400 mb-2 flex w-full items-center gap-2 border-b border-gray-100 px-2 pb-3 text-sm font-medium dark:border-gray-800"
                     @click="activeModule = null"
                 >
-                    <svg
-                        class="h-5 w-5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <path
-                            d="M19 12H5M12 19l-7-7 7-7"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                    </svg>
+                    <ChevronLeft class="h-5 w-5" />
                     <span v-if="!collapsed">Back</span>
                 </button>
 
@@ -149,6 +184,18 @@
 
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
+import {
+    Box,
+    ChevronLeft,
+    ChevronRight,
+    LayoutDashboard,
+    Settings,
+    Shield,
+    ShoppingBag,
+    ShoppingCart,
+    Store,
+    User,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { useSidebar } from '../../composables/useSidebar.js';
 import SidebarLink from './SidebarLink.vue';
@@ -172,18 +219,73 @@ const enabledModules = computed(
 
 const activeModule = ref(null);
 
+// kon base item er dropdown open ache
+const openSubmenu = ref(null);
+
 const isActive = (href) => {
     const current = page.url;
     return current === href || current.startsWith(href + '/');
 };
 
-// base (always visible)
+// base item er kono sub-item active kina check
+const isSubmenuActive = (item) =>
+    item.subItems?.some((sub) => isActive(sub.href)) ?? false;
+
+const toggleSubmenu = (key) => {
+    openSubmenu.value = openSubmenu.value === key ? null : key;
+};
+
+// base (always visible) — jegulo te subItems ache segulo dropdown hobe
 const baseItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { href: '/users', label: 'Users', icon: 'user' },
-    { href: '/roles', label: 'Roles', icon: 'shield' },
-    { href: '/settings', label: 'Settings', icon: 'settings' },
+    {
+        key: 'dashboard',
+        href: '/dashboard',
+        label: 'Dashboard',
+        icon: 'dashboard',
+    },
+    {
+        key: 'users',
+        label: 'Users',
+        icon: 'user',
+        subItems: [
+            { href: '/users', label: 'Lists' },
+            { href: '/users/create', label: 'Create User' },
+        ],
+    },
+    {
+        key: 'roles',
+        label: 'Roles',
+        icon: 'shield',
+        subItems: [
+            { href: '/roles', label: 'All Roles' },
+            { href: '/roles/create', label: 'Add Role' },
+            { href: '/permissions', label: 'Permissions' },
+        ],
+    },
+    {
+        key: 'settings',
+        label: 'Settings',
+        icon: 'settings',
+        subItems: [
+            { href: '/settings', label: 'General' },
+            { href: '/settings/seo', label: 'Seo' },
+        ],
+    },
 ];
+
+// URL match hole related dropdown auto open thakbe
+watch(
+    () => page.url,
+    (url) => {
+        const match = baseItems.find((item) =>
+            item.subItems?.some(
+                (sub) => url === sub.href || url.startsWith(sub.href + '/'),
+            ),
+        );
+        if (match) openSubmenu.value = match.key;
+    },
+    { immediate: true },
+);
 
 const allModuleGroups = {
     eccomarce: {
@@ -233,16 +335,15 @@ watch(
     { immediate: true },
 );
 
+// icon key -> lucide-vue-next component
 const icons = {
-    dashboard:
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>',
-    shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
-    settings:
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
-    cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>',
-    box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>',
-    bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg>',
-    register:
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h4M15 12h2M7 16h2"/></svg>',
+    dashboard: LayoutDashboard,
+    user: User,
+    shield: Shield,
+    settings: Settings,
+    box: Box,
+    bag: ShoppingBag,
+    cart: ShoppingCart,
+    register: Store,
 };
 </script>

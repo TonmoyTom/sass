@@ -41,14 +41,18 @@ defineProps({
 
 <template>
     <Link v-if="href" :href="href" class="inline-flex items-center gap-2">
-        <component :is="icon" v-if="icon" :class="iconClass" />
+        <span v-if="icon" :class="iconClass">
+            <component :is="icon" class="h-full w-full" />
+        </span>
         <div v-if="showText && (text || tagline)" class="flex flex-col">
             <span v-if="text" :class="textClass">{{ text }}</span>
             <span v-if="tagline" :class="taglineClass">{{ tagline }}</span>
         </div>
     </Link>
     <div v-else class="inline-flex items-center gap-2">
-        <component :is="icon" v-if="icon" :class="iconClass" />
+        <span v-if="icon" :class="iconClass">
+            <component :is="icon" class="h-full w-full" />
+        </span>
         <div v-if="showText && (text || tagline)" class="flex flex-col">
             <span v-if="text" :class="textClass">{{ text }}</span>
             <span v-if="tagline" :class="taglineClass">{{ tagline }}</span>

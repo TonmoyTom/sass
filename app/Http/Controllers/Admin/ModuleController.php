@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreModuleRequest;
 use App\Http\Requests\Admin\UpdateModuleRequest;
+use App\Http\Requests\SeoRequest;
 use App\Models\ModulePackage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -14,15 +15,14 @@ use Inertia\Response;
 
 class ModuleController extends Controller
 {
-
     public function __construct()
     {
         $this->middleware('can:modules.view')->only(['index', 'show']);
         $this->middleware('can:modules.create')->only(['create', 'store']);
-        $this->middleware('can:modules.edit')->only(['edit', 'update']);
+        $this->middleware('can:modules.edit')->only(['edit', 'update', 'updateSeo']);
         $this->middleware('can:modules.delete')->only(['destroy']);
     }
-    
+
     public function index(): Response
     {
         $modules = ModulePackage::query()
@@ -81,10 +81,12 @@ class ModuleController extends Controller
 
     public function edit(ModulePackage $module): Response
     {
-        $module->load('tiers');
+
+        $module->load('tiers', 'seo');
 
         return Inertia::render('Admin/Modules/Edit', array_merge(
             [
+                'seo' => $module->seoArray(),
                 'module' => array_merge($module->toArray(), [
                     'features' => is_array($module->features) ? implode("\n", $module->features) : '',
                     'tiers' => $module->tiers->map(fn ($t) => [
@@ -110,6 +112,7 @@ class ModuleController extends Controller
         $module->load('tiers');
 
         return Inertia::render('Admin/Modules/Show', [
+
             'module' => array_merge($module->toArray(), [
                 'tiers' => $module->tiers->map(fn ($t) => [
                     'id' => $t->id,
@@ -161,6 +164,22 @@ class ModuleController extends Controller
 
         return redirect()->route('admin.modules.index')
             ->with('status', 'Module deleted successfully');
+    }
+
+    public function updateSeo(SeoRequest $request, ModulePackage $module)
+    {
+        $data = $request->validated();
+
+        if ($request->hasFile('og_image')) {
+            $data['og_image'] = $request->file('og_image')->store('seo', 'public');
+        }
+
+        $module->seo()->updateOrCreate(
+            ['seoable_id' => $module->id, 'seoable_type' => get_class($module)],
+            $data
+        );
+
+        return back()->with('success', 'SEO updated successfully');
     }
 
     // tier sync — notun add, existing update, baad-dewa delete

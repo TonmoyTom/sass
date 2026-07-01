@@ -5,11 +5,15 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class AdminPermissionSeeder extends Seeder
 {
     public function run(): void
     {
+        // Permission cache clear koro SHURUTE
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
         $permissions = [
             // Dashboard
             'dashboard.view',
@@ -75,7 +79,9 @@ class AdminPermissionSeeder extends Seeder
 
             // Settings
             'settings.view',
-            'settings.update',
+            'settings.create',
+            'settings.edit',
+            'settings.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -84,6 +90,9 @@ class AdminPermissionSeeder extends Seeder
                 'guard_name' => 'web',
             ]);
         }
+
+        // Permission create korার POR abar cache clear koro (safety)
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Core roles
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => 'web']);

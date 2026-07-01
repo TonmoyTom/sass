@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasSeo;
 use Illuminate\Database\Eloquent\Model;
 
 class ModulePackage extends Model
 {
+    use HasSeo;
+
     protected $table = 'modules';
 
     protected $fillable = [
@@ -42,4 +45,9 @@ class ModulePackage extends Model
             ->where('is_active', true)
             ->orderBy('monthly_price');
     }
+
+    // public function getRouteKeyName(): string
+    // {
+    //     return 'alias';
+    // }
 }

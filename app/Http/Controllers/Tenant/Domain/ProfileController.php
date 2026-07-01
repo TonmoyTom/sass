@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Tenant\Domain;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Services\FileStorageService;
 use App\Services\OwnerProfileSync;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -111,12 +112,17 @@ class ProfileController extends Controller
         return back()->with('status', 'Password updated');
     }
 
-    public function updateAvatar(Request $request): RedirectResponse
+    public function updateAvatar(Request $request, FileStorageService $storage): RedirectResponse
     {
         $request->validate(['avatar' => ['required', 'image', 'max:2048']]);
 
         $user = auth()->user();
-        $path = $request->file('avatar')->store('avatars', 'public');
+
+        $path = $storage->uploadImage(
+            $request->file('logo'),
+            'site_setting',
+            ['width' => 400, 'height' => 400, 'quality' => 90]
+        );
         $user->update(['avatar' => $path]);
 
         return back()->with('status', 'Avatar updated');

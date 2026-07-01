@@ -64,7 +64,7 @@ const chart = computed(() => {
 </script>
 
 <template>
-   <WorkspaceLayout title="Edit User">
+   <WorkspaceLayout title="Dashboard">
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="mx-auto max-w-3xl space-y-6 px-4">
 

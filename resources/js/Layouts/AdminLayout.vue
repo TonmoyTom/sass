@@ -1,5 +1,5 @@
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
     <div class="min-h-screen xl:flex">
         <ImpersonationBanner />
 
@@ -22,9 +22,24 @@
 <script setup>
 import ImpersonationBanner from '@/Components/ui/ImpersonationBanner.vue';
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import AppHeader from '../Components/ui/AppHeader.vue';
 import AppSidebar from '../Components/ui/AppSidebar.vue';
 import Backdrop from '../Components/ui/Backdrop.vue';
 import { useSidebar } from '../composables/useSidebar.js';
+
+const props = defineProps({
+    title: {
+        type: String,
+        default: '',
+    },
+});
+
+const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+const pageTitle = computed(() =>
+    props.title ? `${props.title} - ${appName}` : appName,
+);
+
 const { isExpanded, isHovered } = useSidebar();
 </script>

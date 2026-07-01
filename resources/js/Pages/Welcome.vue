@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import SeoHead from '@/Components/seo/SeoHead.vue';
+import { Link } from '@inertiajs/vue3';
 import { ArrowRight, Check, GraduationCap, Star } from 'lucide-vue-next';
+
+defineProps({
+    seo: Object,
+});
 </script>
 
 <template>
+    <SeoHead :seo="seo" />
     <!-- <Head title="EduSaaS - School Management Made Simple" /> -->
     <div class="min-h-screen bg-white">
         <!-- Navigation -->

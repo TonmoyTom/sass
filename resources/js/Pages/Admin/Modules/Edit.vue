@@ -320,18 +320,31 @@
                     </button>
                 </div>
             </form>
+
+            <!-- SEO Settings (separate form, separate endpoint) -->
+            <div class="mt-5">
+                <SeoSettings
+                    :form="seoForm"
+                    @submit="
+                        () => submitSeo('admin.modules.seo.update', module.id)
+                    "
+                />
+            </div>
         </div>
     </AdminLayout>
 </template>
 
 <script setup>
+import SeoSettings from '@/Components/seo/SeoSettings.vue';
 import FormInput from '@/Components/ui/FormInput.vue';
 import FormSelect from '@/Components/ui/FormSelect.vue';
+import { useSeoForm } from '@/composables/useSeoForm';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     module: Object,
+    seo: Object,
     pricingTypes: Array,
     categories: Array,
 });
@@ -410,4 +423,6 @@ const submit = () => {
         })),
     })).put(route('admin.modules.update', props.module.id));
 };
+
+const { form: seoForm, submitSeo } = useSeoForm(props.seo);
 </script>

@@ -13,6 +13,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.ts',
             ],
+            ssr: 'resources/js/ssr.ts', 
             refresh: true,
         }),
         vue({
