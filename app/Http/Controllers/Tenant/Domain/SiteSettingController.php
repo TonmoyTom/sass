@@ -15,6 +15,14 @@ use Inertia\Response;
 
 class SiteSettingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:site-settings.view')->only(['index', 'edit']);
+        $this->middleware('can:site-settings.create')->only(['create', 'store']);
+        $this->middleware('can:site-settings.edit')->only(['updateSeo']);
+        $this->middleware('can:site-settings.delete')->only(['destroy']);
+    }
+
     public function index(): Response
     {
         $settings = SiteSetting::orderBy('page_name')->get();

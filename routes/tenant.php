@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Tenant\Domain\AuthController;
 use App\Http\Controllers\Tenant\Domain\DashboardController;
 use App\Http\Controllers\Tenant\Domain\ProfileController;
 use App\Http\Controllers\Tenant\Domain\RoleController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Tenant\Domain\SettingController;
 use App\Http\Controllers\Tenant\Domain\SiteSettingController;
 use App\Http\Controllers\Tenant\Domain\TenantSitemapController;
 use App\Http\Controllers\Tenant\Domain\UserController;
+use App\Http\Middleware\SetTenantAuthGuard;
 use App\Models\CompanySetting;
 use App\Models\SiteSetting;
 use App\Models\TenantLoginToken;
@@ -19,86 +21,106 @@ use Inertia\Inertia;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
-Route::middleware([
-    'web',
-    'tenant.active',
-    InitializeTenancyByDomain::class,
-    PreventAccessFromCentralDomains::class,
-])->domain('{tenant}.localhost')->group(function () {
-    Route::get('/auto-login', function (Request $request) {
-        $token = $request->query('token');
+Route::domain('{tenant}.myapp.test')->group(function () {
+    Route::middleware([
+        'web',
+        'tenant.active',
+        InitializeTenancyByDomain::class,
+        PreventAccessFromCentralDomains::class,
+        SetTenantAuthGuard::class,
+    ])->group(function () {
+        Route::get('/whoami', function () {
+            dd([
+                'default_guard' => config('auth.defaults.guard'),
+                'auth_check' => auth()->check(),
+                'auth_user' => auth()->user()?->only('id', 'email'),
+                'tenant_guard_check' => auth('tenant')->check(),
+                'tenant_guard_user' => auth('tenant')->user()?->only('id', 'email'),
+                'web_guard_check' => auth('web')->check(),
+                'session_id' => session()->getId(),
+            ]);
+        });
+        Route::get('/auto-login', function (Request $request) {
+            $token = $request->query('token');
 
-        $loginToken = TenantLoginToken::on('mysql')
-            ->where('token', $token)
-            ->where('tenant_id', tenant('id'))
-            ->first();
+            $loginToken = TenantLoginToken::on('mysql')
+                ->where('token', $token)
+                ->where('tenant_id', tenant('id'))
+                ->first();
 
-        if (! $loginToken || ! $loginToken->isValid()) {
-            abort(403, 'Invalid or expired login link');
-        }
+            if (! $loginToken || ! $loginToken->isValid()) {
+                abort(403, 'Invalid or expired login link');
+            }
 
-        $loginToken->update(['used' => true]);
+            $loginToken->update(['used' => true]);
 
-        $tenantUser = TenantUser::where('email', $loginToken->email)->first();
+            $tenantUser = TenantUser::where('email', $loginToken->email)->first();
 
-        if (! $tenantUser) {
-            abort(403, 'User not found in this workspace');
-        }
-        $settings = CompanySetting::current();
-        $default = $settings->setup_completed ? '/dashboard' : '/settings';
-        $redirect = $default;
-
-        if (! str_starts_with($redirect, '/') || str_starts_with($redirect, '//')) {
+            if (! $tenantUser) {
+                abort(403, 'User not found in this workspace');
+            }
+            $settings = CompanySetting::current();
+            $default = $settings->setup_completed ? '/dashboard' : '/settings';
             $redirect = $default;
-        }
 
-        return redirect($redirect);
-    })->name('tenant.auto-login');
+            if (! str_starts_with($redirect, '/') || str_starts_with($redirect, '//')) {
+                $redirect = $default;
+            }
 
-    // tenant login page (public)
-    Route::get('/tenant-login', function () {
-        return Inertia::render('Tenant/Auth/Login');
-    })->name('tenant.login');
+            return redirect($redirect);
+        })->name('tenant.auto-login');
 
-    Route::get('/', function () {
-        $setting = SiteSetting::where('page_key', 'home')->with('seo')->first();
+        // tenant login page (public)
+        Route::get('/tenant-login', function () {
+            return Inertia::render('Tenant/Auth/Login');
+        })->name('tenant.login');
 
-        return Inertia::render('Public/Domain/Home', [
-            'seo' => $setting?->frontSeoArray() ?? [
-                'title' => tenant('name'),
-                'description' => 'Welcome to '.(tenant('name') ?? config('app.name')),
-                'canonical' => url('/'),
-                'robots' => 'index,follow',
-                'og_type' => 'website',
-                'twitter_card' => 'summary_large_image',
-            ],
-        ]);
-    })->name('tenant.home');
-
-    Route::get('/sitemap.xml', [TenantSitemapController::class, 'index'])->name('tenant.sitemap');
-    Route::get('/robots.txt', [TenantSitemapController::class, 'robots'])->name('tenant.robots');
-
-    // authenticated tenant routes
-    Route::middleware(['auth'])->group(function () {
         Route::get('/', function () {
-            return 'Logged in as: '.auth()->user()->name.' (tenant: '.tenant('id').')';
-        })->name('tenant.home');
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
-        Route::get('/profile', [ProfileController::class, 'edit'])->name('tenant.profile');
-        Route::post('/profile', [ProfileController::class, 'update'])->name('tenant.profile.update');
-        Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('tenant.profile.avatar');
-        Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('tenant.profile.password');
-        Route::get('/settings', [SettingController::class, 'index'])->name('tenant.settings');
-        Route::post('/settings', [SettingController::class, 'update'])->name('tenant.settings.update');
-        Route::post('/settings/logo', [SettingController::class, 'updateLogo'])->name('tenant.settings.logo');
-        Route::resource('/roles', RoleController::class)->names('tenant.roles');
-        Route::resource('users', UserController::class)->names('tenant.users');
+            $setting = SiteSetting::where('page_key', 'home')->with('seo')->first();
 
-        Route::get('/settings/seo', [SiteSettingController::class, 'index'])->name('tenant.site-settings.index');
-        Route::get('/settings/seo/create', [SiteSettingController::class, 'create'])->name('tenant.site-settings.create');
-        Route::post('/settings/seo', [SiteSettingController::class, 'store'])->name('tenant.site-settings.store');
-        Route::get('/settings/seo/{setting}/edit', [SiteSettingController::class, 'edit'])->name('tenant.site-settings.edit');
-        Route::put('/settings/seo/{setting}', [SiteSettingController::class, 'updateSeo'])->name('tenant.site-settings.seo.update');
-        Route::delete('/settings/seo/{setting}', [SiteSettingController::class, 'destroy'])->name('tenant.site-settings.destroy');
+            return Inertia::render('Public/Domain/Home', [
+                'seo' => $setting?->frontSeoArray() ?? [
+                    'title' => tenant('name'),
+                    'description' => 'Welcome to '.(tenant('name') ?? config('app.name')),
+                    'canonical' => url('/'),
+                    'robots' => 'index,follow',
+                    'og_type' => 'website',
+                    'twitter_card' => 'summary_large_image',
+                ],
+            ]);
+        })->name('tenant.home');
+
+        Route::get('/sitemap.xml', [TenantSitemapController::class, 'index'])->name('tenant.sitemap');
+        Route::get('/robots.txt', [TenantSitemapController::class, 'robots'])->name('tenant.robots');
+
+        Route::get('/login', [AuthController::class, 'create'])->name('tenant.login');
+        Route::post('/login', [AuthController::class, 'store'])->name('tenant.login.store');
+        Route::post('/logout', [AuthController::class, 'destroy'])->name('tenant.logout');
+
+        // authenticated tenant routes
+        Route::middleware(['auth:tenant'])->group(function () {
+            Route::get('/', function () {
+                return 'Logged in as: '.auth()->user()->name.' (tenant: '.tenant('id').')';
+            })->name('tenant.home');
+            Route::get('/dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
+            Route::get('/profile', [ProfileController::class, 'edit'])->name('tenant.profile');
+            Route::post('/profile', [ProfileController::class, 'update'])->name('tenant.profile.update');
+            Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('tenant.profile.avatar');
+            Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('tenant.profile.password');
+            Route::get('/settings', [SettingController::class, 'index'])->name('tenant.settings');
+            Route::post('/settings', [SettingController::class, 'update'])->name('tenant.settings.update');
+            Route::post('/settings/logo', [SettingController::class, 'updateLogo'])->name('tenant.settings.logo');
+            Route::post('/settings/favicon', [SettingController::class, 'updateFavicon'])->name('tenant.settings.fav');
+            Route::resource('/roles', RoleController::class)->names('tenant.roles');
+            Route::resource('users', UserController::class)->names('tenant.users');
+
+            Route::get('/settings/seo', [SiteSettingController::class, 'index'])->name('tenant.site-settings.index');
+            Route::get('/settings/seo/create', [SiteSettingController::class, 'create'])->name('tenant.site-settings.create');
+            Route::post('/settings/seo', [SiteSettingController::class, 'store'])->name('tenant.site-settings.store');
+            Route::get('/settings/seo/{setting}/edit', [SiteSettingController::class, 'edit'])->name('tenant.site-settings.edit');
+            Route::put('/settings/seo/{setting}', [SiteSettingController::class, 'updateSeo'])->name('tenant.site-settings.seo.update');
+            Route::delete('/settings/seo/{setting}', [SiteSettingController::class, 'destroy'])->name('tenant.site-settings.destroy');
+
+        });
     });
 });

@@ -15,6 +15,14 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:users.view')->only(['index', 'edit']);
+        $this->middleware('can:users.create')->only(['create', 'store']);
+        $this->middleware('can:users.edit')->only(['update']);
+        $this->middleware('can:users.delete')->only(['destroy']);
+    }
+
     public function index(string $tenant): Response
     {
         $users = TenantUser::with('roles')

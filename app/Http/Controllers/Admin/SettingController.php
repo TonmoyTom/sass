@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Tenant\Domain;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CompanySetting;
-use App\Models\Tenant;
 use App\Services\FileStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,25 +12,13 @@ use Inertia\Response;
 
 class SettingController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('can:settings.view')->only(['index']);
-        $this->middleware('can:settings.edit')->only(['update', 'updateLogo', 'updateFavicon']);
-    }
-
     public function index(): Response
     {
         $settings = CompanySetting::current();
-        $tenant = Tenant::on('mysql')->find(tenant('id'));
         $user = auth()->user()->load('info');
 
-        return Inertia::render('Tenant/Domain/Settings/Index', [
+        return Inertia::render('Admin/Settings/Index', [
             'settings' => $settings,
-            'tenant' => [
-                'id' => $tenant?->id,
-                'name' => $tenant?->name,
-                'subdomain' => $tenant?->domains()->first()?->domain,
-            ],
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,
@@ -42,6 +29,7 @@ class SettingController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
+
         $data = $request->validate([
             // identity
             'company_name' => ['required', 'string', 'max:255'],
@@ -54,7 +42,7 @@ class SettingController extends Controller
             'alt_phone' => ['nullable', 'string', 'max:20'],
             'website' => ['nullable', 'string', 'max:255'],
 
-            // address
+            // // address
             'address_line1' => ['nullable', 'string', 'max:255'],
             'address_line2' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
@@ -62,19 +50,19 @@ class SettingController extends Controller
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
 
-            // legal
+            // // legal
             'registration_no' => ['nullable', 'string', 'max:100'],
             'tax_id' => ['nullable', 'string', 'max:100'],
             'vat_no' => ['nullable', 'string', 'max:100'],
 
-            // localization
+            // // localization
             'currency' => ['nullable', 'string', 'max:10'],
             'currency_symbol' => ['nullable', 'string', 'max:10'],
             'timezone' => ['nullable', 'string', 'max:50'],
             'locale' => ['nullable', 'string', 'max:10'],
             'date_format' => ['nullable', 'string', 'max:20'],
 
-            // social
+            // // social
             'facebook' => ['nullable', 'string', 'max:255'],
             'instagram' => ['nullable', 'string', 'max:255'],
             'whatsapp' => ['nullable', 'string', 'max:255'],

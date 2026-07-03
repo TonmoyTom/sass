@@ -61,6 +61,8 @@ class AuthenticatedSessionController extends Controller
                 ]);
         }
 
+        
+
         // Record login info
         $user->recordLogin($request->ip());
 

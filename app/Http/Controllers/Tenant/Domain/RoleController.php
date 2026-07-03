@@ -13,15 +13,27 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:roles.view')->only(['index']);
+        $this->middleware('can:roles.create')->only(['create', 'store']);
+        $this->middleware('can:roles.edit')->only(['edit', 'update']);
+        $this->middleware('can:roles.delete')->only(['destroy']);
+    }
+
     public function index(): Response
     {
-        $roles = Role::withCount('permissions', 'users')->latest()->get()->map(fn ($r) => [
-            'id' => $r->id,
-            'name' => $r->name,
-            'permissions_count' => $r->permissions_count,
-            'users_count' => $r->users_count,
-            'created_at' => $r->created_at?->format('d M Y'),
-        ]);
+        $roles = Role::withCount('permissions', 'users')
+            ->whereNot('name', 'Super admin')
+            ->latest()
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'permissions_count' => $r->permissions_count,
+                'users_count' => $r->users_count,
+                'created_at' => $r->created_at?->format('d M Y'),
+            ]);
 
         return Inertia::render('Tenant/Domain/Roles/Index', [
             'roles' => $roles,
@@ -51,7 +63,6 @@ class RoleController extends Controller
 
     public function edit(string $tenant, Role $role): Response
     {
-
         return Inertia::render('Tenant/Domain/Roles/Edit', [
             'role' => [
                 'id' => $role->id,
@@ -78,7 +89,6 @@ class RoleController extends Controller
 
     public function destroy(string $tenant, Role $role): RedirectResponse
     {
-
         if (in_array($role->name, ['admin', 'customer'])) {
             return back()->withErrors(['role' => 'Default role delete kora jabe na.']);
         }
@@ -97,18 +107,27 @@ class RoleController extends Controller
         foreach ($permissions as $perm) {
             $parts = explode('.', $perm->name, 2);
             $group = count($parts) === 2 ? $parts[0] : 'general';
-            $label = count($parts) === 2 ? $parts[1] : $perm->name;
+            $action = count($parts) === 2 ? $parts[1] : $perm->name;
 
             $groups[$group][] = [
                 'name' => $perm->name,
-                'label' => ucwords(str_replace('_', ' ', $label)),
+                'label' => $this->humanize($action),
             ];
         }
 
-        return collect($groups)->map(fn ($perms, $group) => [
-            'group' => $group,
-            'label' => ucwords(str_replace('_', ' ', $group)),
-            'permissions' => $perms,
-        ])->values()->all();
+        return collect($groups)
+            ->map(fn ($perms, $group) => [
+                'group' => $group,
+                'label' => $this->humanize($group),
+                'permissions' => $perms,
+            ])
+            ->sortBy('label') // alphabetical, dynamic — kono hardcoded order lagbe na
+            ->values()
+            ->all();
+    }
+
+    private function humanize(string $value): string
+    {
+        return ucwords(str_replace(['-', '_', '.'], ' ', $value));
     }
 }

@@ -5,16 +5,7 @@
         <header
             class="sticky top-0 z-50 flex h-12 items-center bg-white/5 px-8 backdrop-blur-md dark:bg-gray-950/80"
         >
-            <IconLink
-                href="/dashboard"
-                text="ALLSPHERE"
-                tagline="All-in-One Business Ecosystem Platform"
-                :icon="FullLogo"
-                :show-text="true"
-                icon-class="block h-5 w-auto"
-                text-class="text-sm font-bold tracking-tight text-gray-900 dark:text-white leading-none"
-                tagline-class="text-[8px] font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase leading-tight mt-0.5"
-            />
+            <IconLink />
         </header>
         <div class="mx-auto max-w-5xl space-y-6 px-4 pt-4 pb-8">
             <section
@@ -87,10 +78,8 @@ import ThemeToggler from '@/Components/common/ThemeToggler.vue';
 import ImpersonationBanner from '@/Components/ui/ImpersonationBanner.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { ExternalLink, Globe, Image, LogOut } from 'lucide-vue-next';
-import { computed, h } from 'vue';
+import { computed } from 'vue';
 import IconLink from '../../js/Components/ui/IconLink.vue';
-import { useSidebar } from '../composables/useSidebar.js';
-const { toggleSidebar, toggleMobileSidebar } = useSidebar();
 
 const page = usePage();
 const tenant = computed(
@@ -107,25 +96,4 @@ const statusPill = (s) =>
             'text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-400',
     })[String(s).toLowerCase()] ??
     'text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-400';
-
-const FullLogo = {
-    render() {
-        return h('span', { class: 'inline-flex' }, [
-            h('img', {
-                class: 'dark:hidden',
-                src: '/logo/allsphare_logo.png',
-                alt: 'Logo',
-                width: 32,
-                height: 32,
-            }),
-            h('img', {
-                class: 'hidden dark:block',
-                src: '/logo/allsphare_logo.png',
-                alt: 'Logo',
-                width: 32,
-                height: 32,
-            }),
-        ]);
-    },
-};
 </script>

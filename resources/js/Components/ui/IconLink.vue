@@ -1,61 +1,35 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { useSidebar } from '../../composables/useSidebar.js';
 
-defineProps({
-    href: {
-        type: String,
-        default: null,
-    },
-    icon: {
-        type: [Object, Function],
-        default: null,
-    },
-    text: {
-        type: String,
-        default: null,
-    },
-    tagline: {
-        type: String,
-        default: null,
-    },
-    showText: {
-        type: Boolean,
-        default: true,
-    },
-    iconClass: {
-        type: String,
-        default: 'block h-9 w-auto',
-    },
-    textClass: {
-        type: String,
-        default:
-            'text-lg font-bold tracking-tight text-gray-900 dark:text-white leading-none',
-    },
-    taglineClass: {
-        type: String,
-        default:
-            'text-[9px] font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase leading-tight mt-0.5',
-    },
-});
+const page = usePage();
+const company = computed(() => page.props.company);
+
+const logoUrl = computed(() => company.value?.logo_url ?? null);
+const companyName = computed(() => company.value?.name ?? '');
+
+const { isExpanded, isMobileOpen, isHovered } = useSidebar();
+
+const showFullLogo = computed(
+    () => isExpanded.value || isHovered.value || isMobileOpen.value,
+);
 </script>
 
 <template>
-    <Link v-if="href" :href="href" class="inline-flex items-center gap-2">
-        <span v-if="icon" :class="iconClass">
-            <component :is="icon" class="h-full w-full" />
+    <Link href="/dashboard" class="inline-flex items-center gap-2">
+        <span v-if="logoUrl" class="block h-9 w-auto flex-shrink-0">
+            <img
+                :src="logoUrl"
+                :alt="companyName"
+                class="h-full w-full object-contain"
+            />
         </span>
-        <div v-if="showText && (text || tagline)" class="flex flex-col">
-            <span v-if="text" :class="textClass">{{ text }}</span>
-            <span v-if="tagline" :class="taglineClass">{{ tagline }}</span>
-        </div>
+        <span
+            v-if="companyName && showFullLogo"
+            class="text-lg leading-none font-bold tracking-tight whitespace-nowrap text-gray-900 dark:text-white"
+        >
+            {{ companyName }}
+        </span>
     </Link>
-    <div v-else class="inline-flex items-center gap-2">
-        <span v-if="icon" :class="iconClass">
-            <component :is="icon" class="h-full w-full" />
-        </span>
-        <div v-if="showText && (text || tagline)" class="flex flex-col">
-            <span v-if="text" :class="textClass">{{ text }}</span>
-            <span v-if="tagline" :class="taglineClass">{{ tagline }}</span>
-        </div>
-    </div>
 </template>

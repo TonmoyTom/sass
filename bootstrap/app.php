@@ -35,8 +35,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant_owner' => EnsureTenantOwner::class,
             'tenant.active' => CheckTenantActive::class,
         ]);
+        $middleware->redirectGuestsTo(function ($request) {
+            if (function_exists('tenant') && tenant()) {
+                return '/login';
+            }
 
-        //
+            return route('login'); // central — Breeze default login
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

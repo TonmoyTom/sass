@@ -40,13 +40,16 @@ class HandleInertiaRequests extends Middleware
 
             // ── tenant side: subdomain context ──
             'workspace' => fn () => $this->workspace(),
+
+            // ── central platform's own branding (logo/favicon/name) ──
+            'company' => fn () => $this->company(),
         ];
     }
 
     protected function ownedTenant(Request $request): ?array
     {
         $user = $request->user();
-        if (! $user) {
+        if (! $user || ! method_exists($user, 'ownedTenants')) {
             return null;
         }
 
@@ -91,6 +94,38 @@ class HandleInertiaRequests extends Middleware
                     'company_name' => $settings->company_name ?? 'Workspace',
                     'logo_url' => $settings->logo_url,
                     'enabled_modules' => $t?->enabledModules() ?? [],
+                ];
+            }
+        );
+    }
+
+    /**
+     * Central platform's own company branding — shudhu tenant() null hole (central context)
+     */
+    protected function company(): ?array
+    {
+        if (tenant()) {
+            return null;
+        }
+
+        return Cache::remember(
+            'share:company:central',
+            now()->addMinutes(15),
+            function () {
+                $settings = CompanySetting::select('company_name', 'logo', 'favicon')->first();
+
+                if (! $settings) {
+                    return [
+                        'name' => config('app.name'),
+                        'logo_url' => null,
+                        'favicon_url' => null,
+                    ];
+                }
+
+                return [
+                    'name' => $settings->company_name ?? config('app.name'),
+                    'logo_url' => $settings->logo_url,
+                    'favicon_url' => $settings->favicon_url,
                 ];
             }
         );

@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\TenantUser;
+use App\Models\User;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -30,39 +33,29 @@ return [
     */
 
     'guards' => [
-        // Main guard for all central users (admin, seller, tenant_owner)
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
         ],
-
-        // For future API access (mobile app)
         'sanctum' => [
             'driver' => 'sanctum',
             'provider' => 'users',
         ],
-
-        // For tenant users (will be configured per-tenant via Stancl/Tenancy)
-        // 'tenant' => [
-        //     'driver' => 'session',
-        //     'provider' => 'tenant_users',
-        // ],
+        'tenant' => [
+            'driver' => 'session',
+            'provider' => 'tenant_users',
+        ],
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | User Providers
-    |--------------------------------------------------------------------------
-    */
 
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => User::class,
         ],
-
-        // Tenant users will be added here when tenant auth is set up
-        // 'tenant_users' => [...],
+        'tenant_users' => [
+            'driver' => 'eloquent',
+            'model' => TenantUser::class,
+        ],
     ],
 
     /*

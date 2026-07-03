@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SellerController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\TenantController;
@@ -42,9 +43,10 @@ use Inertia\Inertia;
 |
 */
 
-Route::domain('localhost')->group(function () {
+Route::domain('myapp.test')->group(function () {
     Route::get('/robots.txt', function () {
         Log::info('CENTRAL robots.txt hit', ['host' => request()->getHost()]);
+
         return response("User-agent: *\nAllow: /\nDisallow: /admin\n\nSitemap: ".url('/sitemap.xml'), 200)
             ->header('Content-Type', 'text/plain');
     })->name('robots');
@@ -233,6 +235,11 @@ Route::domain('localhost')->group(function () {
             Route::get('/site-settings/{setting}/edit', [SiteSettingController::class, 'edit'])->name('site-settings.edit');
             Route::put('/site-settings/{setting}/seo', [SiteSettingController::class, 'updateSeo'])->name('site-settings.seo.update');
             Route::delete('/site-settings/{setting}', [SiteSettingController::class, 'destroy'])->name('site-settings.destroy');
+
+            Route::get('/settings', [SettingController::class, 'index'])->name('settings');
+            Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
+            Route::post('/settings/logo', [SettingController::class, 'updateLogo'])->name('settings.logo');
+            Route::post('/settings/favicon', [SettingController::class, 'updateFavicon'])->name('settings.fav');
 
             // // Settings
             // Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])

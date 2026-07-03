@@ -22,13 +22,7 @@
                     : 'justify-start',
             ]"
         >
-            <IconLink
-                href="/"
-                text="ALLSPHERE"
-                tagline="All-in-One Business Ecosystem Platform"
-                :icon="FullLogo"
-                :show-text="showFullLogo"
-            />
+            <IconLink/>
         </div>
         <div
             class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear"
@@ -242,7 +236,7 @@
 
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed, h } from 'vue';
+import { computed, ref } from 'vue';
 
 import {
     ChevronDown as ChevronDownIcon,
@@ -253,47 +247,12 @@ import {
 import { useSidebar } from '@/composables/useSidebar';
 import IconLink from '../ui/IconLink.vue';
 
+const { isExpanded, isMobileOpen, isHovered } = useSidebar();
+const openSubmenu = ref(null);
+
 const page = usePage();
 const currentPath = computed(() => new URL(page.url, 'http://x').pathname);
 const isImpersonating = computed(() => !!page.props.impersonating);
-
-const { isExpanded, isMobileOpen, isHovered, openSubmenu } = useSidebar();
-
-const showFullLogo = computed(
-    () => isExpanded.value || isHovered.value || isMobileOpen.value,
-);
-
-const FullLogo = {
-    render() {
-        return h('span', { class: 'inline-flex' }, [
-            h('img', {
-                class: 'dark:hidden',
-                src: '/logo/allsphare_logo.png',
-                alt: 'Logo',
-                width: 32,
-                height: 32,
-            }),
-            h('img', {
-                class: 'hidden dark:block',
-                src: '/logo/allsphare_logo.png',
-                alt: 'Logo',
-                width: 32,
-                height: 32,
-            }),
-        ]);
-    },
-};
-
-const IconLogo = {
-    render() {
-        return h('img', {
-            src: '/logo/allsphare_logo.png',
-            alt: 'Logo',
-            width: 32,
-            height: 32,
-        });
-    },
-};
 
 const menuGroups = [
     {

@@ -1,5 +1,5 @@
 <template>
-    <WorkspaceLayout title="Settings">
+    <AdminLayout title="Settings">
         <div
             class="min-h-screen bg-gray-50 px-4 sm:px-6 lg:px-8 dark:bg-gray-900"
         >
@@ -75,6 +75,12 @@
                                 <p class="mt-1.5 text-xs text-gray-400">
                                     PNG, JPG, SVG. Max 2MB.
                                 </p>
+                                <p
+                                    v-if="logoError"
+                                    class="mt-1 text-xs text-red-500"
+                                >
+                                    {{ logoError }}
+                                </p>
                             </div>
                         </div>
 
@@ -100,7 +106,6 @@
                             </div>
                         </div>
                     </section>
-
                     <section
                         class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"
                     >
@@ -390,13 +395,13 @@
                 </form>
             </div>
         </div>
-    </WorkspaceLayout>
+    </AdminLayout>
 </template>
 
 <script setup>
 import FormInput from '@/Components/ui/FormInput.vue';
 import PhoneInput from '@/Components/ui/PhoneInput.vue';
-import WorkspaceLayout from '@/Layouts/WorkspaceLayout.vue';
+import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -449,7 +454,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post('/settings', {
+    form.post('/admin/settings', {
         preserveScroll: true,
         onSuccess: () => {
             saved.value = true;
@@ -465,7 +470,7 @@ const onLogoChange = (e) => {
     logoPreview.value = URL.createObjectURL(file);
 
     router.post(
-        '/settings/logo',
+        '/admin/settings/logo',
         { logo: file },
         {
             preserveScroll: true,
@@ -484,7 +489,7 @@ const onFaviconChange = (e) => {
     faviconPreview.value = URL.createObjectURL(file);
 
     router.post(
-        '/settings/favicon',
+        '/admin/settings/favicon',
         { favicon: file },
         {
             preserveScroll: true,

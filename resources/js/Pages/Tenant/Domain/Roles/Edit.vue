@@ -22,9 +22,7 @@
                     </svg>
                 </a>
                 <div>
-                    <h3
-                        class="text-xl font-semibold text-gray-800 capitalize dark:text-white/90"
-                    >
+                    <h3 class="text-xl font-semibold text-gray-800 capitalize dark:text-white/90">
                         Edit {{ role.name }}
                     </h3>
                     <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
@@ -35,9 +33,7 @@
 
             <form class="flex flex-col gap-5" @submit.prevent="submit">
                 <!-- role name -->
-                <section
-                    class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"
-                >
+                <section class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
                     <FormInput
                         v-model="form.name"
                         label="Role Name"
@@ -47,69 +43,61 @@
                 </section>
 
                 <!-- permissions -->
-                <section
-                    class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"
-                >
-                    <div class="mb-5">
-                        <h5
-                            class="font-semibold text-gray-800 dark:text-white/90"
+                <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="mb-4 flex items-center justify-between">
+                        <div>
+                            <h5 class="font-semibold text-gray-800 dark:text-white/90">
+                                Permissions
+                            </h5>
+                            <p class="mt-0.5 text-xs text-gray-400">
+                                {{ form.permissions.length }} selected
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            class="text-brand-600 dark:text-brand-400 text-xs font-medium hover:underline"
+                            @click="toggleAll"
                         >
-                            Permissions
-                        </h5>
-                        <p class="mt-0.5 text-xs text-gray-400">
-                            {{ form.permissions.length }} selected
-                        </p>
+                            {{ isAllSelected ? 'Deselect all' : 'Select all' }}
+                        </button>
                     </div>
 
-                    <div
-                        v-if="permissionGroups.length"
-                        class="flex flex-col gap-5"
-                    >
+                    <div v-if="permissionGroups.length" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         <div
                             v-for="group in permissionGroups"
                             :key="group.group"
-                            class="rounded-xl border border-gray-200 dark:border-gray-700"
+                            class="rounded-lg border border-gray-200 dark:border-gray-700"
                         >
                             <!-- group header -->
-                            <div
-                                class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-700"
-                            >
-                                <span
-                                    class="text-sm font-semibold text-gray-700 capitalize dark:text-gray-200"
-                                    >{{ group.label }}</span
-                                >
+                            <div class="flex items-center justify-between border-b border-gray-100 px-3 py-2 dark:border-gray-700">
+                                <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                    {{ group.label }}
+                                </span>
                                 <button
                                     type="button"
-                                    class="text-brand-600 dark:text-brand-400 text-xs font-medium hover:underline"
+                                    class="text-brand-600 dark:text-brand-400 text-[11px] font-medium hover:underline"
                                     @click="toggleGroup(group)"
                                 >
-                                    {{
-                                        isGroupAllSelected(group)
-                                            ? 'Deselect all'
-                                            : 'Select all'
-                                    }}
+                                    {{ isGroupAllSelected(group) ? 'None' : 'All' }}
                                 </button>
                             </div>
 
                             <!-- group permissions -->
-                            <div
-                                class="grid grid-cols-1 gap-2 p-4 sm:grid-cols-2"
-                            >
+                            <div class="flex flex-col gap-0.5 p-2">
                                 <label
                                     v-for="perm in group.permissions"
                                     :key="perm.name"
-                                    class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                                    class="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                                 >
                                     <input
                                         v-model="form.permissions"
                                         type="checkbox"
                                         :value="perm.name"
-                                        class="text-brand-500 focus:ring-brand-500/20 h-4 w-4 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                                        class="text-brand-500 focus:ring-brand-500/20 h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
                                     />
-                                    <span
-                                        class="text-sm text-gray-700 dark:text-gray-300"
-                                        >{{ perm.label }}</span
-                                    >
+                                    <span class="text-xs text-gray-700 dark:text-gray-300">
+                                        {{ perm.label }}
+                                    </span>
                                 </label>
                             </div>
                         </div>
@@ -124,10 +112,7 @@
                         </p>
                     </div>
 
-                    <p
-                        v-if="form.errors.permissions"
-                        class="mt-3 text-sm text-red-500"
-                    >
+                    <p v-if="form.errors.permissions" class="mt-3 text-sm text-red-500">
                         {{ form.errors.permissions }}
                     </p>
                 </section>
@@ -157,6 +142,7 @@
 import FormInput from '@/Components/ui/FormInput.vue';
 import WorkspaceLayout from '@/Layouts/WorkspaceLayout.vue';
 import { useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 const props = defineProps({
     role: Object,
@@ -178,6 +164,20 @@ const toggleGroup = (group) => {
     } else {
         form.permissions = [...new Set([...form.permissions, ...names])];
     }
+};
+
+const allPermissionNames = computed(() =>
+    props.permissionGroups.flatMap((g) => g.permissions.map((p) => p.name)),
+);
+
+const isAllSelected = computed(
+    () =>
+        allPermissionNames.value.length > 0 &&
+        allPermissionNames.value.every((name) => form.permissions.includes(name)),
+);
+
+const toggleAll = () => {
+    form.permissions = isAllSelected.value ? [] : [...allPermissionNames.value];
 };
 
 const submit = () => {
