@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -19,37 +20,48 @@ use Spatie\Permission\Models\Role;
 
 class TenantController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:tenants.view')->only(['index', 'show']);
+        $this->middleware('can:tenants.create')->only(['create', 'store']);
+        $this->middleware('can:tenants.edit')->only(['edit', 'update']);
+        $this->middleware('can:tenants.delete')->only(['destroy']);
+        $this->middleware('can:tenants.suspend')->only(['suspend']);
+        $this->middleware('can:tenants.reactivate')->only(['reactivate']);
+        $this->middleware('can:tenants.impersonate')->only(['impersonate']);
+    }
 
-  public function __construct()
-  {
-      $this->middleware('can:tenants.view')->only(['index', 'show']);
-      $this->middleware('can:tenants.create')->only(['create', 'store']);
-      $this->middleware('can:tenants.edit')->only(['edit', 'update']);
-      $this->middleware('can:tenants.delete')->only(['destroy']);
-      $this->middleware('can:tenants.suspend')->only(['suspend']);
-      $this->middleware('can:tenants.reactivate')->only(['reactivate']);
-      $this->middleware('can:tenants.impersonate')->only(['impersonate']);
-  }
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $tenants = Tenant::query()
             ->with('domains')
-            ->withCount([])
-            ->latest('created_at')
-            ->paginate(15)
-            ->through(fn ($tenant) => [
-                'id' => $tenant->id,
-                'user_id' => $tenant->owner_id,
-                'name' => $tenant->name,
-                'subdomain' => $tenant->subdomain,
-                'email' => $tenant->email,
-                'status' => $tenant->status,
-                'domain' => $tenant->domains->first()?->domain,
-                'created_at' => $tenant->created_at?->format('d M Y'),
-            ]);
+            ->filterAndCache(
+                $request,
+                searchable: ['name', 'subdomain', 'email'],
+                filterable: ['status'],
+                sortable: ['name', 'created_at'],
+                ttlSeconds: 300,
+                perPage: 15,
+                transform: fn ($tenant) => [
+                    'id' => $tenant->id,
+                    'user_id' => $tenant->owner_id,
+                    'name' => $tenant->name,
+                    'subdomain' => $tenant->subdomain,
+                    'email' => $tenant->email,
+                    'status' => $tenant->status,
+                    'domain' => $tenant->domains->first()?->domain,
+                    'created_at' => $tenant->created_at?->format('d M Y'),
+                ]
+            );
 
         return Inertia::render('Admin/Tenants/Index', [
             'tenants' => $tenants,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'status' => $request->input('status', ''),   // ← explicit default
+                'sort_by' => $request->input('sort_by', 'created_at'),
+                'sort_dir' => $request->input('sort_dir', 'desc'),
+            ],
         ]);
     }
 

@@ -12,12 +12,14 @@
                     <ArrowLeft class="h-5 w-5" />
                 </Link>
                 <div
-                    class="bg-brand-50 text-brand-500 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl dark:bg-brand-900/20 dark:text-brand-400"
+                    class="bg-brand-50 text-brand-500 dark:bg-brand-900/20 dark:text-brand-400 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
                 >
                     <CreditCard class="h-5 w-5" />
                 </div>
                 <div>
-                    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    <h3
+                        class="text-xl font-bold tracking-tight text-gray-900 dark:text-white"
+                    >
                         Checkout
                     </h3>
                     <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
@@ -34,9 +36,13 @@
                 <div
                     class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
                 >
-                    <ShoppingCart class="h-8 w-8 text-gray-400 dark:text-gray-500" />
+                    <ShoppingCart
+                        class="h-8 w-8 text-gray-400 dark:text-gray-500"
+                    />
                 </div>
-                <p class="font-semibold text-gray-900 dark:text-white">Your cart is empty</p>
+                <p class="font-semibold text-gray-900 dark:text-white">
+                    Your cart is empty
+                </p>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Add some modules before checking out.
                 </p>
@@ -57,7 +63,7 @@
                         class="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-white"
                     >
                         <span
-                            class="bg-brand-50 text-brand-500 flex h-7 w-7 items-center justify-center rounded-lg dark:bg-brand-900/20 dark:text-brand-400"
+                            class="bg-brand-50 text-brand-500 dark:bg-brand-900/20 dark:text-brand-400 flex h-7 w-7 items-center justify-center rounded-lg"
                         >
                             <Receipt class="h-4 w-4" />
                         </span>
@@ -80,19 +86,23 @@
                                         </p>
                                         <span
                                             v-if="item.is_upgrade"
-                                            class="bg-brand-50 text-brand-600 rounded-full px-2 py-0.5 text-[10px] font-medium dark:bg-brand-900/20 dark:text-brand-400"
+                                            class="bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 rounded-full px-2 py-0.5 text-[10px] font-medium"
                                         >
                                             Upgrade
                                         </span>
                                     </div>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    <p
+                                        class="text-xs text-gray-500 dark:text-gray-400"
+                                    >
                                         {{ item.tier_name }} ·
                                         <span class="capitalize">{{
                                             item.billing_cycle
                                         }}</span>
                                     </p>
                                 </div>
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                                <p
+                                    class="text-sm font-semibold text-gray-900 dark:text-white"
+                                >
                                     ৳{{ money(item.charge)
                                     }}<span
                                         class="text-xs font-normal text-gray-400 dark:text-gray-500"
@@ -110,7 +120,9 @@
                                 v-if="item.credit > 0"
                                 class="mt-2 space-y-1 rounded-xl bg-gray-50 p-3 text-xs dark:bg-gray-800/50"
                             >
-                                <div class="flex justify-between text-gray-500 dark:text-gray-400">
+                                <div
+                                    class="flex justify-between text-gray-500 dark:text-gray-400"
+                                >
                                     <span>Plan price</span>
                                     <span>৳{{ money(item.price) }}</span>
                                 </div>
@@ -148,7 +160,8 @@
                         class="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-800"
                     >
                         <div>
-                            <span class="font-semibold text-gray-900 dark:text-white"
+                            <span
+                                class="font-semibold text-gray-900 dark:text-white"
                                 >Total</span
                             >
                             <span
@@ -157,7 +170,8 @@
                                 >৳{{ money(full_total) }}</span
                             >
                         </div>
-                        <span class="text-xl font-bold text-gray-900 dark:text-white"
+                        <span
+                            class="text-xl font-bold text-gray-900 dark:text-white"
                             >৳{{ money(total) }}</span
                         >
                     </div>
@@ -171,20 +185,22 @@
                         class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white"
                     >
                         <span
-                            class="bg-brand-50 text-brand-500 flex h-7 w-7 items-center justify-center rounded-lg dark:bg-brand-900/20 dark:text-brand-400"
+                            class="bg-brand-50 text-brand-500 dark:bg-brand-900/20 dark:text-brand-400 flex h-7 w-7 items-center justify-center rounded-lg"
                         >
                             <Tag class="h-4 w-4" />
                         </span>
                         Referral Code
                     </h5>
-                    <p class="mt-1 mb-3 text-sm text-gray-500 dark:text-gray-400">
+                    <p
+                        class="mt-1 mb-3 text-sm text-gray-500 dark:text-gray-400"
+                    >
                         Have a referral code? Enter it below.
                     </p>
                     <input
                         v-model="form.referral_code"
                         type="text"
                         placeholder="e.g. ABC123"
-                        class="focus:border-brand-400 focus:ring-brand-100 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 font-mono text-sm text-gray-800 uppercase focus:ring-2 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 dark:focus:border-brand-600 dark:focus:ring-brand-900/40"
+                        class="focus:border-brand-400 focus:ring-brand-100 dark:focus:border-brand-600 dark:focus:ring-brand-900/40 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 font-mono text-sm text-gray-800 uppercase focus:ring-2 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
                     />
                     <p
                         v-if="form.errors.referral_code"
@@ -202,19 +218,85 @@
                         class="mb-3 flex items-center gap-2 font-semibold text-gray-900 dark:text-white"
                     >
                         <span
-                            class="bg-brand-50 text-brand-500 flex h-7 w-7 items-center justify-center rounded-lg dark:bg-brand-900/20 dark:text-brand-400"
+                            class="bg-brand-50 text-brand-500 dark:bg-brand-900/20 dark:text-brand-400 flex h-7 w-7 items-center justify-center rounded-lg"
                         >
                             <CreditCard class="h-4 w-4" />
                         </span>
                         Payment
                     </h5>
-                    <p
-                        class="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+                    <div
+                        class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
                     >
-                        <Info class="mt-0.5 h-4 w-4 shrink-0" />
-                        Payment gateway coming soon. For now, your order will be
-                        confirmed directly.
-                    </p>
+                        <h5
+                            class="mb-4 font-semibold text-gray-800 dark:text-white/90"
+                        >
+                            Payment Method
+                        </h5>
+
+                        <div v-if="payment_methods.length" class="space-y-3">
+                            <label
+                                v-for="pm in payment_methods"
+                                :key="pm.method"
+                                class="flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4"
+                                :class="
+                                    form.payment_method === pm.method
+                                        ? 'border-brand-500 bg-brand-50/40 dark:bg-brand-900/10'
+                                        : 'border-gray-200 hover:border-gray-300 dark:border-gray-700'
+                                "
+                            >
+                                <input
+                                    type="radio"
+                                    :value="pm.method"
+                                    v-model="form.payment_method"
+                                    class="mt-1"
+                                />
+                                <div class="flex-1">
+                                    <p
+                                        class="font-medium text-gray-800 capitalize dark:text-white/90"
+                                    >
+                                        {{ pm.method }}
+                                    </p>
+
+                                    <template v-if="pm.method === 'bank'">
+                                        <p
+                                            class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                                        >
+                                            {{ pm.bank_name }} —
+                                            {{ pm.account_name }} —
+                                            {{ pm.account_number }}
+                                        </p>
+                                    </template>
+                                    <template v-else>
+                                        <p
+                                            class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                                        >
+                                            Send to: {{ pm.merchant_number }}
+                                        </p>
+                                    </template>
+
+                                    <p
+                                        v-if="pm.instructions"
+                                        class="mt-1 text-xs text-gray-400 italic"
+                                    >
+                                        {{ pm.instructions }}
+                                    </p>
+                                </div>
+                            </label>
+
+                            <input
+                                v-if="form.payment_method"
+                                v-model="form.transaction_id"
+                                type="text"
+                                placeholder="Transaction ID / Reference number"
+                                class="mt-2 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:text-white/90"
+                            />
+                        </div>
+
+                        <p v-else class="text-sm text-gray-400">
+                            No payment methods available. Please contact
+                            support.
+                        </p>
+                    </div>
                 </section>
 
                 <!-- ── Confirm ── -->
@@ -241,7 +323,6 @@ import {
     ArrowLeft,
     Check,
     CreditCard,
-    Info,
     Receipt,
     ShoppingCart,
     Tag,
@@ -253,6 +334,7 @@ const props = defineProps({
     full_total: Number,
     has_credit: Boolean,
     referral_code: String,
+    payment_methods: { type: Array, default: () => [] },
 });
 
 const money = (val) =>
@@ -263,6 +345,8 @@ const money = (val) =>
 
 const form = useForm({
     referral_code: props.referral_code ?? '',
+    payment_method: '',
+    transaction_id: '',
 });
 
 const submit = () => {

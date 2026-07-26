@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Tenant\Domain;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+
 
 class RoleController extends Controller
 {
@@ -21,22 +22,30 @@ class RoleController extends Controller
         $this->middleware('can:roles.delete')->only(['destroy']);
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $roles = Role::withCount('permissions', 'users')
+        $roles = Role::query()
+            ->withCount('permissions', 'users')
             ->whereNot('name', 'Super admin')
-            ->latest()
-            ->get()
-            ->map(fn ($r) => [
-                'id' => $r->id,
-                'name' => $r->name,
-                'permissions_count' => $r->permissions_count,
-                'users_count' => $r->users_count,
-                'created_at' => $r->created_at?->format('d M Y'),
-            ]);
+            ->filterAndCache(
+                request: $request,
+                searchable: ['name'],
+                filterable: [],
+                sortable: ['name', 'permissions_count', 'users_count', 'created_at'],
+                ttlSeconds: 300,
+                perPage: 15,
+                transform: fn ($r) => [
+                    'id' => $r->id,
+                    'name' => $r->name,
+                    'permissions_count' => $r->permissions_count,
+                    'users_count' => $r->users_count,
+                    'created_at' => $r->created_at?->format('d M Y'),
+                ]
+            );
 
         return Inertia::render('Tenant/Domain/Roles/Index', [
             'roles' => $roles,
+            'filters' => $request->only(['search', 'sort_by', 'sort_dir']),
         ]);
     }
 

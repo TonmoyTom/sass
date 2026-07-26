@@ -1,13 +1,28 @@
 <template>
     <SellerLayout title="Modules">
-        <div class="mb-6">
-            <h3 class="text-xl font-semibold text-gray-800 dark:text-white/90">
-                Available Modules
-            </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Je module sell korte chao, request pathaও. Admin approve korle
-                commission paba.
-            </p>
+        <div
+            class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+            <div>
+                <h3
+                    class="text-xl font-semibold text-gray-800 dark:text-white/90"
+                >
+                    Available Modules
+                </h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Je module sell korte chao, request pathaও. Admin approve
+                    korle commission paba.
+                </p>
+            </div>
+
+            <div class="relative min-w-[220px] sm:flex-none">
+                <input
+                    v-model="search"
+                    type="text"
+                    placeholder="Search modules..."
+                    class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 focus:outline-hidden dark:border-gray-700 dark:text-white/90"
+                />
+            </div>
         </div>
 
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -46,8 +61,6 @@
                     theke shuru · {{ m.tiers_count }} tier
                 </div>
 
-                <!-- request status / button -->
-                <!-- request status / button -->
                 <div class="space-y-2">
                     <button
                         v-if="!m.request_status"
@@ -69,7 +82,7 @@
                             v-else-if="m.request_status === 'approved'"
                             class="rounded-lg bg-green-50 py-2.5 text-center text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400"
                         >
-                            ✓ Approved — Sell korte parba
+                            ✓ Approved — you can now sell it
                         </div>
 
                         <div v-else-if="m.request_status === 'rejected'">
@@ -100,7 +113,7 @@
                 v-if="!modules.length"
                 class="col-span-full py-10 text-center text-gray-500 dark:text-gray-400"
             >
-                No modules available right now.
+                No modules found.
             </div>
         </div>
     </SellerLayout>
@@ -109,10 +122,14 @@
 <script setup>
 import SellerLayout from '@/Layouts/SellerLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 
-defineProps({
+const props = defineProps({
     modules: Array,
+    filters: { type: Object, default: () => ({}) },
 });
+
+const search = ref(props.filters.search ?? '');
 
 const money = (val) =>
     Number(val ?? 0).toLocaleString('en-BD', {
@@ -121,11 +138,22 @@ const money = (val) =>
     });
 
 const requestModule = (m) => {
-    if (!confirm(`"${m.name}" module sell korar request pathabe?`)) return;
     router.post(
         route('seller.modules.request'),
         { module_id: m.id },
         { preserveScroll: true },
     );
 };
+
+let debounceTimer = null;
+watch(search, () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        router.get(
+            route('seller.modules.index'),
+            { search: search.value || undefined },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }, 400);
+});
 </script>

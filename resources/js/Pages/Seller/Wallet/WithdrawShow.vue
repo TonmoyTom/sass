@@ -3,10 +3,10 @@
         <div class="mx-auto max-w-lg">
             <div class="mb-6">
                 <Link
-                    :href="route('seller.wallet.withdraw.history')"
+                    :href="route('seller.wallet.index')"
                     class="mb-2 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                    ← Back to History
+                    ← Back to Wallet
                 </Link>
                 <h3
                     class="text-xl font-semibold text-gray-800 dark:text-white/90"
@@ -71,20 +71,30 @@
                         <div
                             class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                             :class="
-                                request.processed_at
-                                    ? 'bg-green-100 dark:bg-green-900/30'
-                                    : 'bg-gray-100 dark:bg-gray-800'
+                                request.status === 'rejected'
+                                    ? 'bg-red-100 dark:bg-red-900/30'
+                                    : request.processed_at
+                                      ? 'bg-green-100 dark:bg-green-900/30'
+                                      : 'bg-gray-100 dark:bg-gray-800'
                             "
                         >
                             <span
                                 class="text-xs"
                                 :class="
-                                    request.processed_at
-                                        ? 'text-green-600'
-                                        : 'text-gray-400'
+                                    request.status === 'rejected'
+                                        ? 'text-red-600'
+                                        : request.processed_at
+                                          ? 'text-green-600'
+                                          : 'text-gray-400'
                                 "
                             >
-                                {{ request.processed_at ? '✓' : '○' }}
+                                {{
+                                    request.status === 'rejected'
+                                        ? '✕'
+                                        : request.processed_at
+                                          ? '✓'
+                                          : '○'
+                                }}
                             </span>
                         </div>
                         <div class="flex-1">
@@ -107,15 +117,15 @@
                     </div>
                 </div>
 
+                <!-- Details -->
                 <div
                     class="space-y-3 border-t border-gray-100 pt-5 dark:border-gray-800"
                 >
-                    <div
-                        v-if="request.status === 'approved'"
-                        class="border-t border-gray-100 pt-5 dark:border-gray-800"
-                    >
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-500"
+                    <!-- Paid / Refunded (approved only) -->
+                    <template v-if="request.status === 'approved'">
+                        <div class="flex items-center justify-between">
+                            <span
+                                class="text-sm text-gray-500 dark:text-gray-400"
                                 >Paid Amount</span
                             >
                             <span
@@ -124,18 +134,25 @@
                             >
                         </div>
                         <div
-                            v-if="request.paid_amount < request.amount"
-                            class="mt-2 flex justify-between"
+                            v-if="
+                                Number(request.paid_amount) <
+                                Number(request.amount)
+                            "
+                            class="-mx-3 flex items-center justify-between rounded-lg bg-yellow-50 px-3 py-2 dark:bg-yellow-900/20"
                         >
-                            <span class="text-sm text-red-500">Refunded</span>
                             <span
-                                class="text-sm font-medium text-red-800 dark:text-white/90"
+                                class="text-sm font-medium text-yellow-700 dark:text-yellow-400"
+                                >Refunded to Balance</span
+                            >
+                            <span
+                                class="text-sm font-bold text-yellow-700 dark:text-yellow-400"
                                 >৳{{
                                     money(request.amount - request.paid_amount)
                                 }}</span
                             >
                         </div>
-                    </div>
+                    </template>
+
                     <!-- Method -->
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-500 dark:text-gray-400"
@@ -148,21 +165,40 @@
                         </span>
                     </div>
 
-                    <!-- Payout info -->
+                    <!-- Account info -->
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-500 dark:text-gray-400"
-                            >Send To</span
+                            >Account Name</span
                         >
                         <span
                             class="text-sm font-medium text-gray-800 dark:text-white/90"
                         >
-                            <template v-if="request.method === 'bkash'">
-                                {{ payout.bkash_number ?? '—' }}
-                            </template>
-                            <template v-else>
-                                {{ payout.bank_name }} —
-                                {{ payout.bank_account }}
-                            </template>
+                            {{ request.account_name ?? '—' }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500 dark:text-gray-400"
+                            >Account Number</span
+                        >
+                        <span
+                            class="text-sm font-medium text-gray-800 dark:text-white/90"
+                        >
+                            {{ request.account_number ?? '—' }}
+                        </span>
+                    </div>
+
+                    <!-- Processed by -->
+                    <div
+                        v-if="request.approved_by"
+                        class="flex items-center justify-between"
+                    >
+                        <span class="text-sm text-gray-500 dark:text-gray-400"
+                            >Processed By</span
+                        >
+                        <span
+                            class="text-sm font-medium text-gray-800 dark:text-white/90"
+                        >
+                            {{ request.approved_by }}
                         </span>
                     </div>
 
@@ -195,8 +231,8 @@
                     v-if="request.status === 'rejected'"
                     class="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400"
                 >
-                    This request was rejected. Please contact support for
-                    details.
+                    This request was rejected and the amount was returned to
+                    your available balance.
                 </div>
             </div>
         </div>
@@ -207,9 +243,8 @@
 import SellerLayout from '@/Layouts/SellerLayout.vue';
 import { Link } from '@inertiajs/vue3';
 
-const props = defineProps({
+defineProps({
     request: Object,
-    payout: Object,
 });
 
 const money = (val) =>

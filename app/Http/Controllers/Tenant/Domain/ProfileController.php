@@ -9,6 +9,7 @@ use App\Services\OwnerProfileSync;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -94,7 +95,8 @@ class ProfileController extends Controller
         return back()->with('status', 'Profile updated');
     }
 
-    public function updatePassword(Request $request): RedirectResponse
+    // ProfileController::updatePassword() e
+    public function updatePassword(Request $request, OwnerProfileSync $sync): RedirectResponse
     {
         $data = $request->validate([
             'current_password' => ['required'],
@@ -107,23 +109,40 @@ class ProfileController extends Controller
             return back()->withErrors(['current_password' => 'Current password thik na.']);
         }
 
-        $user->update(['password' => Hash::make($data['password'])]);
+        $hashedPassword = Hash::make($data['password']);
+        $user->update(['password' => $hashedPassword]);
+        $tenant = Tenant::on('mysql')->find(tenant('id'));
+        if ($tenant && $tenant->owner && $tenant->owner->email === $user->email) {
+            tenancy()->central(function () use ($tenant, $hashedPassword) {
+                $tenant->owner->update(['password' => $hashedPassword]);
+            });
+        }
 
         return back()->with('status', 'Password updated');
     }
 
-    public function updateAvatar(Request $request, FileStorageService $storage): RedirectResponse
+    public function updateAvatar(Request $request, FileStorageService $storage, OwnerProfileSync $sync): RedirectResponse
     {
         $request->validate(['avatar' => ['required', 'image', 'max:2048']]);
 
         $user = auth()->user();
 
         $path = $storage->uploadImage(
-            $request->file('logo'),
-            'site_setting',
+            $request->file('avatar'),
+            'avatars',
             ['width' => 400, 'height' => 400, 'quality' => 90]
         );
+
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
         $user->update(['avatar' => $path]);
+
+        $tenant = Tenant::on('mysql')->find(tenant('id'));
+        if ($tenant && $tenant->owner && $tenant->owner->email === $user->email) {
+            $sync->syncToCentral($tenant, $user, ['name' => $user->name, 'email' => $user->email]);
+        }
 
         return back()->with('status', 'Avatar updated');
     }

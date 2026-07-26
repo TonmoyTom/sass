@@ -244,6 +244,15 @@ const baseItems = [
         icon: 'dashboard',
     },
     {
+        key: 'modules',
+        label: 'Modules',
+        icon: 'user',
+        subItems: [
+            { href: '/my-modules', label: 'Lists' },
+            { href: '/my-modules/history', label: 'History' },
+        ],
+    },
+    {
         key: 'users',
         label: 'Users',
         icon: 'user',
@@ -269,6 +278,8 @@ const baseItems = [
         subItems: [
             { href: '/settings', label: 'General' },
             { href: '/settings/seo', label: 'Seo' },
+            { href: '/settings/payment', label: 'Payment' },
+            { href: '/settings/two-factor', label: 'Two Factor' },
         ],
     },
 ];

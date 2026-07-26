@@ -2,13 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\SessionController;
 use App\Http\Controllers\Tenant\Domain\AuthController;
 use App\Http\Controllers\Tenant\Domain\DashboardController;
+use App\Http\Controllers\Tenant\Domain\MyModulesController;
+use App\Http\Controllers\Tenant\Domain\NotificationController;
 use App\Http\Controllers\Tenant\Domain\ProfileController;
 use App\Http\Controllers\Tenant\Domain\RoleController;
 use App\Http\Controllers\Tenant\Domain\SettingController;
 use App\Http\Controllers\Tenant\Domain\SiteSettingController;
+use App\Http\Controllers\Tenant\Domain\TenantPaymentSettingController;
 use App\Http\Controllers\Tenant\Domain\TenantSitemapController;
+use App\Http\Controllers\Tenant\Domain\TwoFactorController;
 use App\Http\Controllers\Tenant\Domain\UserController;
 use App\Http\Middleware\SetTenantAuthGuard;
 use App\Models\CompanySetting;
@@ -16,8 +21,12 @@ use App\Models\SiteSetting;
 use App\Models\TenantLoginToken;
 use App\Models\TenantUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
@@ -29,7 +38,10 @@ Route::domain('{tenant}.myapp.test')->group(function () {
         PreventAccessFromCentralDomains::class,
         SetTenantAuthGuard::class,
     ])->group(function () {
+
+        Broadcast::routes(['middleware' => ['web', 'auth:tenant']]);
         Route::get('/whoami', function () {
+            $u = auth('tenant')->user();
             dd([
                 'default_guard' => config('auth.defaults.guard'),
                 'auth_check' => auth()->check(),
@@ -38,6 +50,13 @@ Route::domain('{tenant}.myapp.test')->group(function () {
                 'tenant_guard_user' => auth('tenant')->user()?->only('id', 'email'),
                 'web_guard_check' => auth('web')->check(),
                 'session_id' => session()->getId(),
+                'user_guard' => $u->guard_name ?? 'not set',
+                'roles' => $u->roles->map(fn ($r) => [$r->name, $r->guard_name]),
+                'perms' => $u->getAllPermissions()->map(fn ($p) => [$p->name, $p->guard_name]),
+                'direct_check' => $u->can('users.view'),
+                'all_roles_in_db' => Role::all(['name', 'guard_name'])->toArray(),
+                'all_perms_in_db' => Permission::where('name', 'like', 'users.%')->get(['name', 'guard_name'])->toArray(),
+                'db_connection' => DB::connection()->getDatabaseName(),
             ]);
         });
         Route::get('/auto-login', function (Request $request) {
@@ -97,6 +116,9 @@ Route::domain('{tenant}.myapp.test')->group(function () {
         Route::post('/login', [AuthController::class, 'store'])->name('tenant.login.store');
         Route::post('/logout', [AuthController::class, 'destroy'])->name('tenant.logout');
 
+        Route::get('/two-factor-challenge', [AuthController::class, 'showTwoFactorChallenge'])->name('tenant.two-factor.challenge');
+        Route::post('/two-factor-challenge', [AuthController::class, 'verifyTwoFactorChallenge'])->name('tenant.two-factor.verify');
+
         // authenticated tenant routes
         Route::middleware(['auth:tenant'])->group(function () {
             Route::get('/', function () {
@@ -120,6 +142,26 @@ Route::domain('{tenant}.myapp.test')->group(function () {
             Route::get('/settings/seo/{setting}/edit', [SiteSettingController::class, 'edit'])->name('tenant.site-settings.edit');
             Route::put('/settings/seo/{setting}', [SiteSettingController::class, 'updateSeo'])->name('tenant.site-settings.seo.update');
             Route::delete('/settings/seo/{setting}', [SiteSettingController::class, 'destroy'])->name('tenant.site-settings.destroy');
+
+            Route::get('/notifications', [NotificationController::class, 'index'])->name('tenant.notifications.index');
+            Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('tenant.notifications.read');
+
+            Route::get('/my-modules', [MyModulesController::class, 'index'])->name('tenant.my-modules.index');
+            Route::get('/my-modules/history', [MyModulesController::class, 'purchaseHistory'])->name('tenant.my-modules.history');
+            Route::get('/my-modules/{id}', [MyModulesController::class, 'show'])->name('tenant.my-modules.show');
+            Route::get('/my-modules/{id}/invoice', [MyModulesController::class, 'invoice'])->name('tenant.my-modules.invoice');
+
+            Route::post('/my-modules/{tenantModuleId}/renew', [MyModulesController::class, 'renew'])->name('tenant.my-modules.renew');
+
+            Route::get('/settings/payment', [TenantPaymentSettingController::class, 'index'])->name('tenant.payment-settings.index');
+            Route::patch('/settings/payment/{method}', [TenantPaymentSettingController::class, 'update'])->name('tenant.payment-settings.update');
+
+            Route::post('/session/clear', [SessionController::class, 'clearSession'])->name('session.clear');
+            Route::post('/session/clear-cookies', [SessionController::class, 'clearCookies'])->name('session.clear-cookies');
+            Route::get('/settings/two-factor', [TwoFactorController::class, 'show'])->name('tenant.payment-settings.index');
+            Route::post('/settings/two-factor/enable', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
+            Route::post('/settings/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('two-factor.confirm');
+            Route::delete('/settings/two-factor', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
 
         });
     });

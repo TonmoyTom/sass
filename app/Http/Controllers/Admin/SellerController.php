@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateSellerRequest;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -15,39 +16,53 @@ use Inertia\Response;
 
 class SellerController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:sellers.view')->only(['index', 'show']);
+        $this->middleware('can:sellers.create')->only(['create', 'store']);
+        $this->middleware('can:sellers.edit')->only(['edit', 'update']);
+        $this->middleware('can:sellers.delete')->only(['destroy']);
+        $this->middleware('can:sellers.approve')->only(['approve']);
+        $this->middleware('can:sellers.reject')->only(['reject']);
+        $this->middleware('can:sellers.suspend')->only(['suspend']);
+        $this->middleware('can:sellers.approve')->only(['start']);
+    }
 
-  public function __construct()
-  {
-      $this->middleware('can:sellers.view')->only(['index', 'show']);
-      $this->middleware('can:sellers.create')->only(['create', 'store']);
-      $this->middleware('can:sellers.edit')->only(['edit', 'update']);
-      $this->middleware('can:sellers.delete')->only(['destroy']);
-      $this->middleware('can:sellers.approve')->only(['approve']);
-      $this->middleware('can:sellers.reject')->only(['reject']);
-      $this->middleware('can:sellers.suspend')->only(['suspend']);
-      $this->middleware('can:sellers.approve')->only(['start']); 
-  }
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $sellers = Seller::query()
             ->with(['user', 'wallet'])
-            ->latest()
-            ->paginate(15)
-            ->through(fn ($s) => [
-                'id' => $s->id,
-                'user_id' => $s->user_id,
-                'name' => $s->user?->name,
-                'email' => $s->user?->email,
-                'referral_code' => $s->referral_code,
-                'status' => $s->status,
-                'commission_rate' => $s->commission_rate,
-                'total_sales' => $s->total_sales,
-                'total_earned' => $s->total_earned,
-                'balance' => $s->wallet?->available_balance ?? 0,
-                'created_at' => $s->created_at?->format('d M Y'),
-            ]);
+            ->filterAndCache(
+                $request,
+                searchable: ['referral_code'],
+                filterable: ['status'],
+                sortable: ['total_sales', 'total_earned', 'commission_rate', 'created_at'],
+                ttlSeconds: 300,
+                perPage: 15,
+                transform: fn ($s) => [
+                    'id' => $s->id,
+                    'user_id' => $s->user_id,
+                    'name' => $s->user?->name,
+                    'email' => $s->user?->email,
+                    'referral_code' => $s->referral_code,
+                    'status' => $s->status,
+                    'commission_rate' => $s->commission_rate,
+                    'total_sales' => $s->total_sales,
+                    'total_earned' => $s->total_earned,
+                    'balance' => $s->wallet?->available_balance ?? 0,
+                    'created_at' => $s->created_at?->format('d M Y'),
+                ]
+            );
 
-        return Inertia::render('Admin/Sellers/Index', ['sellers' => $sellers]);
+        return Inertia::render('Admin/Sellers/Index', [
+            'sellers' => $sellers,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'status' => $request->input('status', ''),
+                'sort_by' => $request->input('sort_by', 'created_at'),
+                'sort_dir' => $request->input('sort_dir', 'desc'),
+            ],
+        ]);
     }
 
     public function create(): Response

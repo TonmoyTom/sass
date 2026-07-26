@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WithdrawRequest extends Model
 {
+    use Filterable;
+
     protected $fillable = [
         'seller_id',
         'wallet_id',
@@ -16,6 +19,9 @@ class WithdrawRequest extends Model
         'note',
         'processed_at',
         'paid_amount',
+        'account_name',
+        'account_number',
+        'approved_by',
     ];
 
     protected $casts = [
@@ -31,6 +37,11 @@ class WithdrawRequest extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     // ── Scopes ──

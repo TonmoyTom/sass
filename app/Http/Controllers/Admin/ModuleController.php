@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\Request;
 
 class ModuleController extends Controller
 {
@@ -23,28 +24,43 @@ class ModuleController extends Controller
         $this->middleware('can:modules.delete')->only(['destroy']);
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $modules = ModulePackage::query()
             ->with('tiers')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(fn ($m) => [
-                'id' => $m->id,
-                'name' => $m->name,
-                'alias' => $m->alias,
-                'icon' => $m->icon,
-                'category' => $m->module_category,
-                'pricing_type' => $m->pricing_type,
-                'commission_rate' => $m->commission_rate,
-                'is_active' => $m->is_active,
-                'is_core' => $m->is_core,
-                'tiers_count' => $m->tiers->count(),
-                'starting_price' => $m->tiers->where('is_active', true)->min('monthly_price'),
-            ]);
+            ->filterAndCache(
+                $request,
+                searchable: ['name', 'alias'],
+                filterable: ['module_category', 'pricing_type', 'is_active'],
+                sortable: ['name', 'sort_order', 'commission_rate'],
+                ttlSeconds: 300,
+                perPage: 20,
+                transform: fn ($m) => [
+                    'id' => $m->id,
+                    'name' => $m->name,
+                    'alias' => $m->alias,
+                    'icon' => $m->icon,
+                    'category' => $m->module_category,
+                    'pricing_type' => $m->pricing_type,
+                    'commission_rate' => $m->commission_rate,
+                    'is_active' => $m->is_active,
+                    'is_core' => $m->is_core,
+                    'tiers_count' => $m->tiers->count(),
+                    'starting_price' => $m->tiers->where('is_active', true)->min('monthly_price'),
+                ]
+            );
 
-        return Inertia::render('Admin/Modules/Index', ['modules' => $modules]);
+        return Inertia::render('Admin/Modules/Index', [
+            'modules' => $modules,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'module_category' => $request->input('module_category', ''),
+                'pricing_type' => $request->input('pricing_type', ''),
+                'is_active' => $request->input('is_active', ''),
+                'sort_by' => $request->input('sort_by', 'sort_order'),
+                'sort_dir' => $request->input('sort_dir', 'asc'),
+            ],
+        ]);
     }
 
     public function create(): Response

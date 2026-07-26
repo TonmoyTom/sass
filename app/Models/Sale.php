@@ -2,21 +2,27 @@
 
 namespace App\Models;
 
+use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Sale extends Model
 {
+    use Filterable;
+
+    protected $connection = 'mysql';
+
     protected $fillable = [
         'tenant_id', 'seller_id', 'module_id', 'module_tier_id',
         'sale_type', 'amount', 'commission_amount', 'admin_amount',
-        'status', 'sold_at',
+        'status', 'sold_at', 'invoice_number', 'payment_method', 'transaction_id',
     ];
 
     protected $casts = [
-        'amount'            => 'decimal:2',
+        'amount' => 'decimal:2',
         'commission_amount' => 'decimal:2',
-        'admin_amount'      => 'decimal:2',
-        'sold_at'           => 'datetime',
+        'admin_amount' => 'decimal:2',
+        'sold_at' => 'datetime',
     ];
 
     public function tenant()
@@ -41,6 +47,26 @@ class Sale extends Model
 
     public function commission()
     {
-        return $this->hasOne(Commission::class ,  'sale_id');
+        return $this->hasOne(Commission::class, 'sale_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Sale $sale) {
+            if (! $sale->invoice_number) {
+                $sale->invoice_number = static::generateInvoiceNumber();
+            }
+        });
+    }
+
+    public static function generateInvoiceNumber(): string
+    {
+        $prefix = 'INV-'.now()->format('Ym').'-';
+
+        do {
+            $number = $prefix.strtoupper(Str::random(6));
+        } while (static::where('invoice_number', $number)->exists());
+
+        return $number;
     }
 }

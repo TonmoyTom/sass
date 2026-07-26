@@ -17,167 +17,116 @@
                 </Link>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead
-                        class="border-b border-gray-200 text-xs text-gray-500 uppercase dark:border-gray-800 dark:text-gray-400"
-                    >
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Name</th>
-                            <th class="px-4 py-3 font-medium">Domain</th>
-                            <th class="px-4 py-3 font-medium">Email</th>
-                            <th class="px-4 py-3 font-medium">Status</th>
-                            <th class="px-4 py-3 font-medium">Created</th>
-                            <th class="px-4 py-3 text-right font-medium">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody
-                        class="divide-y divide-gray-100 dark:divide-gray-800"
-                    >
-                        <tr
-                            v-for="tenant in tenants.data"
-                            :key="tenant.id"
-                            class="hover:bg-gray-50 dark:hover:bg-white/[0.02]"
-                        >
-                            <td
-                                class="px-4 py-3 font-medium text-gray-800 dark:text-white/90"
-                            >
-                                {{ tenant.name }}
-                            </td>
-                            <td
-                                class="px-4 py-3 text-gray-600 dark:text-gray-400"
-                            >
-                                <a
-                                    v-if="tenant.domain"
-                                    :href="`http://${tenant.domain}`"
-                                    target="_blank"
-                                    class="text-brand-500 hover:underline"
-                                >
-                                    {{ tenant.domain }}
-                                </a>
-                                <span v-else>{{ tenant.subdomain }}</span>
-                            </td>
-                            <td
-                                class="px-4 py-3 text-gray-600 dark:text-gray-400"
-                            >
-                                {{ tenant.email }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <span
-                                    :class="statusClass(tenant.status)"
-                                    class="rounded-full px-2.5 py-1 text-xs font-medium capitalize"
-                                >
-                                    {{ tenant.status }}
-                                </span>
-                            </td>
-                            <td
-                                class="px-4 py-3 text-gray-600 dark:text-gray-400"
-                            >
-                                {{ tenant.created_at }}
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <div
-                                    class="flex items-center justify-end gap-2"
-                                >
-                                    <Link
-                                        :href="
-                                            route(
-                                                'admin.tenants.show',
-                                                tenant.id,
-                                            )
-                                        "
-                                        class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
-                                    >
-                                        View
-                                    </Link>
-                                    <Link
-                                        :href="
-                                            route(
-                                                'admin.tenants.edit',
-                                                tenant.id,
-                                            )
-                                        "
-                                        class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
-                                    >
-                                        Edit
-                                    </Link>
-                                    <button
-                                        v-if="
-                                            $page.props.auth?.user
-                                                ?.user_type === 'super_admin' &&
-                                            tenant.user_id
-                                        "
-                                        @click="loginAsTenant(tenant)"
-                                        class="bg-brand-500 hover:bg-brand-600 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-                                    >
-                                        Login
-                                    </button>
-                                    <button
-                                        v-if="tenant.status !== 'suspended'"
-                                        @click="suspend(tenant)"
-                                        class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
-                                    >
-                                        Suspend
-                                    </button>
-                                    <button
-                                        v-else
-                                        @click="reactivate(tenant)"
-                                        class="rounded-lg border border-green-300 px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 dark:border-green-800"
-                                    >
-                                        Reactivate
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr v-if="!tenants.data.length">
-                            <td
-                                colspan="6"
-                                class="px-4 py-10 text-center text-gray-500 dark:text-gray-400"
-                            >
-                                No tenants yet. Create your first one.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <div
-                v-if="tenants.links.length > 3"
-                class="mt-5 flex flex-wrap gap-1"
+            <DataTable
+                :data="tenants"
+                :filters="filters"
+                route-name="admin.tenants.index"
+                :columns="[
+                    { key: 'name', label: 'Name', sortable: true },
+                    { key: 'domain', label: 'Domain' },
+                    { key: 'email', label: 'Email' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'created_at', label: 'Created', sortable: true },
+                    { key: 'actions', label: '' },
+                ]"
             >
-                <template v-for="(link, i) in tenants.links" :key="i">
-                    <Link
-                        v-if="link.url"
-                        :href="link.url"
-                        v-html="link.label"
-                        class="rounded-lg px-3 py-1.5 text-sm"
-                        :class="
-                            link.active
-                                ? 'bg-brand-500 text-white'
-                                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.05]'
-                        "
-                    />
-                    <span
-                        v-else
-                        v-html="link.label"
-                        class="cursor-default rounded-lg px-3 py-1.5 text-sm text-gray-400 opacity-50"
-                    />
+                <template #filters="{ filters: f, apply }">
+                    <select
+                        v-model="f.status"
+                        @change="apply"
+                        class="h-10 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 focus:outline-hidden dark:border-gray-700 dark:text-gray-300"
+                    >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="trial">Trial</option>
+                        <option value="suspended">Suspended</option>
+                        <option value="expired">Expired</option>
+                    </select>
                 </template>
-            </div>
+
+                <template #row="{ row: tenant }">
+                    <td class="px-4 py-3 font-medium text-gray-800 dark:text-white/90">
+                        {{ tenant.name }}
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        <a
+                            v-if="tenant.domain"
+                            :href="`http://${tenant.domain}`"
+                            target="_blank"
+                            class="text-brand-500 hover:underline"
+                        >
+                            {{ tenant.domain }}
+                        </a>
+                        <span v-else>{{ tenant.subdomain }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        {{ tenant.email }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span
+                            :class="statusClass(tenant.status)"
+                            class="rounded-full px-2.5 py-1 text-xs font-medium capitalize"
+                        >
+                            {{ tenant.status }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        {{ tenant.created_at }}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <Link
+                                :href="route('admin.tenants.show', tenant.id)"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
+                            >
+                                View
+                            </Link>
+                            <Link
+                                :href="route('admin.tenants.edit', tenant.id)"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
+                            >
+                                Edit
+                            </Link>
+                            <button
+                                v-if="
+                                    $page.props.auth?.user?.user_type === 'super_admin' &&
+                                    tenant.user_id
+                                "
+                                @click="loginAsTenant(tenant)"
+                                class="bg-brand-500 hover:bg-brand-600 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-white"
+                            >
+                                Login
+                            </button>
+                            <button
+                                v-if="tenant.status !== 'suspended'"
+                                @click="suspend(tenant)"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
+                            >
+                                Suspend
+                            </button>
+                            <button
+                                v-else
+                                @click="reactivate(tenant)"
+                                class="rounded-lg border border-green-300 px-3 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 dark:border-green-800"
+                            >
+                                Reactivate
+                            </button>
+                        </div>
+                    </td>
+                </template>
+            </DataTable>
         </div>
     </AdminLayout>
 </template>
 
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import DataTable from '@/Components/ui/DataTable.vue';
 import { Link, router } from '@inertiajs/vue3';
 
 defineProps({
     tenants: Object,
+    filters: { type: Object, default: () => ({}) },
 });
 
 const statusClass = (status) => {

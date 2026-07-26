@@ -23,22 +23,32 @@ class UserController extends Controller
         $this->middleware('can:users.delete')->only(['destroy']);
     }
 
-    public function index(string $tenant): Response
+    public function index(string $tenant, Request $request): Response
     {
-        $users = TenantUser::with('roles')
+        $users = TenantUser::query()
+            ->with('roles')
             ->whereDoesntHave('roles', function ($q) {
                 $q->where('name', 'Super Admin');
             })
-            ->latest()
-            ->get()
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'phone' => $u->phone,
-                'avatar' => $u->avatar ? $u->avatar_url : null,
-                'roles' => $u->roles->pluck('name'),
-            ]);
+            ->filterAndCache(
+                request: $request,
+                searchable: ['name', 'email', 'phone'],
+                filterable: [],
+                sortable: ['name', 'email', 'created_at'],
+                ttlSeconds: 300,
+                perPage: 15,
+                transform: fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'phone' => $u->phone,
+                    'avatar' => $u->avatar ? $u->avatar_url : null,
+                    'roles' => $u->roles->map(fn ($r) => [
+                        'id' => $r->id,
+                        'name' => $r->name,
+                    ])->values()->all(),
+                ]
+            );
 
         return Inertia::render('Tenant/Domain/Users/Index', [
             'users' => $users,

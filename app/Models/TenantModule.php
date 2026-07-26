@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class TenantModule extends Model
 {
+    protected $connection = 'mysql';
+
     protected $fillable = [
         'tenant_id', 'module_id', 'module_tier_id',
         'status', 'access_type', 'limits',

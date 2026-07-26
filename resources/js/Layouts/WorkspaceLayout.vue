@@ -7,7 +7,7 @@
             class="flex-1 transition-all duration-300 ease-in-out"
             :class="[isExpanded || isHovered ? 'lg:ml-[290px]' : 'lg:ml-[90px]']"
         >
-            <AppHeader />
+            <AppTenantHeader />
             <div class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
                 <slot></slot>
             </div>
@@ -22,6 +22,7 @@ import AppHeader from '../Components/ui/AppHeader.vue';
 import Backdrop from '../Components/ui/Backdrop.vue';
 import WorkspaceSidebar from '../Components/ui/WorkspaceSidebar.vue';
 import { useSidebar } from '../composables/useSidebar.js';
+import AppTenantHeader from '@/Components/ui/AppTenantHeader.vue';
 
 const { isExpanded, isHovered } = useSidebar();
 

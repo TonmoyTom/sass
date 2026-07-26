@@ -26,6 +26,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
+            'centralDomain' => config('app.central_domain'),
             'impersonating' => (bool) $impersonatorId,
             'impersonator' => $impersonatorId
                 ? User::find($impersonatorId)?->only(['id', 'name'])
@@ -91,6 +92,9 @@ class HandleInertiaRequests extends Middleware
                     ->first();
 
                 return [
+                    'tenant' => [
+                        'id' => $tenantId,
+                    ],
                     'company_name' => $settings->company_name ?? 'Workspace',
                     'logo_url' => $settings->logo_url,
                     'enabled_modules' => $t?->enabledModules() ?? [],

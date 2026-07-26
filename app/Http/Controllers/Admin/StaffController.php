@@ -26,23 +26,31 @@ class StaffController extends Controller
     {
         $staff = User::query()
             ->role('staff')
-            ->when($request->search, fn ($q) => $q->where('name', 'like', "%{$request->search}%")
-                ->orWhere('email', 'like', "%{$request->search}%"))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString()
-            ->through(fn ($u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'avatar' => $u->avatar,
-                'status' => $u->status,
-                'created_at' => $u->created_at?->format('d M Y'),
-            ]);
+            ->filterAndCache(
+                $request,
+                searchable: ['name', 'email'],
+                filterable: ['status'],
+                sortable: ['name', 'created_at'],
+                ttlSeconds: 300,
+                perPage: 15,
+                transform: fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'avatar' => $u->avatar,
+                    'status' => $u->status,
+                    'created_at' => $u->created_at?->format('d M Y'),
+                ]
+            );
 
         return Inertia::render('Admin/Staff/Index', [
             'staff' => $staff,
-            'filters' => $request->only('search'),
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'status' => $request->input('status', ''),
+                'sort_by' => $request->input('sort_by', 'created_at'),
+                'sort_dir' => $request->input('sort_dir', 'desc'),
+            ],
         ]);
     }
 

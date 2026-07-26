@@ -23,12 +23,32 @@ class SiteSettingController extends Controller
         $this->middleware('can:site-settings.delete')->only(['destroy']);
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $settings = SiteSetting::orderBy('page_name')->get();
+        $settings = SiteSetting::query()
+            ->filterAndCache(
+                $request,
+                searchable: ['page_name', 'page_key'],
+                filterable: [],
+                sortable: ['page_name'],
+                ttlSeconds: 600,
+                perPage: 50,
+                transform: fn ($s) => [
+                    'id' => $s->id,
+                    'page_name' => $s->page_name,
+                    'page_url' => $s->page_url,
+                    'page_key' => $s->page_key,
+                    'updated_at' => $s->updated_at?->format('d M Y'),
+                ]
+            );
 
         return Inertia::render('Tenant/Domain/SiteSettings/Index', [
             'settings' => $settings,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'sort_by' => $request->input('sort_by', 'page_name'),
+                'sort_dir' => $request->input('sort_dir', 'asc'),
+            ],
         ]);
     }
 

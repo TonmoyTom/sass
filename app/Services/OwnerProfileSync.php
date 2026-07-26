@@ -19,40 +19,44 @@ class OwnerProfileSync
         }
 
         foreach ($owner->ownedTenants as $tenant) {
-            $tenant->run(function () use ($owner, $data, $matchEmail, $avatarPath, $avatarContent) {
-                $tenantUser = TenantUser::where('email', $matchEmail)->first();
+            try {
+                $tenant->run(function () use ($owner, $data, $matchEmail, $avatarPath, $avatarContent) {
+                    $tenantUser = TenantUser::where('email', $matchEmail)->first();
 
-                if (! $tenantUser) {
-                    return;
-                }
+                    if (! $tenantUser) {
+                        return;
+                    }
 
-                if ($avatarPath && $avatarContent !== null) {
-                    Storage::disk('public')->put($avatarPath, $avatarContent);
-                }
+                    if ($avatarPath && $avatarContent !== null) {
+                        Storage::disk('public')->put($avatarPath, $avatarContent);
+                    }
 
-                $tenantUser->update([
-                    'name' => $owner->name,
-                    'email' => $data['email'] ?? $tenantUser->email,
-                    'phone' => $data['phone'] ?? $tenantUser->phone,
-                    'avatar' => $avatarPath ?? $tenantUser->avatar,   // same path
-                ]);
+                    $tenantUser->update([
+                        'name' => $owner->name,
+                        'email' => $data['email'] ?? $tenantUser->email,
+                        'phone' => $data['phone'] ?? $tenantUser->phone,
+                        'avatar' => $avatarPath ?? $tenantUser->avatar,
+                    ]);
 
-                $tenantUser->info()->updateOrCreate(
-                    ['user_id' => $tenantUser->id],
-                    [
-                        'first_name' => $data['first_name'] ?? $tenantUser->info?->first_name,
-                        'last_name' => $data['last_name'] ?? $tenantUser->info?->last_name,
-                        'bio' => $data['bio'] ?? $tenantUser->info?->bio,
-                        'country' => $data['country'] ?? $tenantUser->info?->country,
-                        'city' => $data['city'] ?? $tenantUser->info?->city,
-                        'postal_code' => $data['postal_code'] ?? $tenantUser->info?->postal_code,
-                        'facebook' => $data['facebook'] ?? $tenantUser->info?->facebook,
-                        'twitter' => $data['twitter'] ?? $tenantUser->info?->twitter,
-                        'lnkedin' => $data['linkedin'] ?? $tenantUser->info?->lnkedin,
-                        'instagram' => $data['instagram'] ?? $tenantUser->info?->instagram,
-                    ]
-                );
-            });
+                    $tenantUser->info()->updateOrCreate(
+                        ['user_id' => $tenantUser->id],
+                        [
+                            'first_name' => $data['first_name'] ?? $tenantUser->info?->first_name,
+                            'last_name' => $data['last_name'] ?? $tenantUser->info?->last_name,
+                            'bio' => $data['bio'] ?? $tenantUser->info?->bio,
+                            'country' => $data['country'] ?? $tenantUser->info?->country,
+                            'city' => $data['city'] ?? $tenantUser->info?->city,
+                            'postal_code' => $data['postal_code'] ?? $tenantUser->info?->postal_code,
+                            'facebook' => $data['facebook'] ?? $tenantUser->info?->facebook,
+                            'twitter' => $data['twitter'] ?? $tenantUser->info?->twitter,
+                            'lnkedin' => $data['linkedin'] ?? $tenantUser->info?->lnkedin,
+                            'instagram' => $data['instagram'] ?? $tenantUser->info?->instagram,
+                        ]
+                    );
+                });
+            } catch (\Throwable $e) {
+                report($e); // log kore next tenant e continue
+            }
         }
     }
 
@@ -101,5 +105,41 @@ class OwnerProfileSync
                 'instagram' => $data['instagram'] ?? $owner->info?->instagram,
             ]
         );
+    }
+
+    public function syncTwoFactorToTenant(User $owner): void
+    {
+        foreach ($owner->ownedTenants as $tenant) {
+            try {
+                $tenant->run(function () use ($owner) {
+                    $tenantUser = TenantUser::where('email', $owner->email)->first();
+                    if (! $tenantUser) {
+                        return;
+                    }
+                    $tenantUser->forceFill([
+                        'two_factor_secret' => $owner->two_factor_secret,
+                        'two_factor_recovery_codes' => $owner->two_factor_recovery_codes,
+                        'two_factor_confirmed_at' => $owner->two_factor_confirmed_at,
+                    ])->save();
+                });
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+    }
+
+    public function syncTwoFactorToCentral(TenantUser $tenantUser): void
+    {
+        $centralUser = User::on('central')->where('email', $tenantUser->email)->first();
+
+        if (! $centralUser) {
+            return; // ei tenant user central-e kono account-er sathe linked na (staff, owner na)
+        }
+
+        $centralUser->forceFill([
+            'two_factor_secret' => $tenantUser->two_factor_secret,
+            'two_factor_recovery_codes' => $tenantUser->two_factor_recovery_codes,
+            'two_factor_confirmed_at' => $tenantUser->two_factor_confirmed_at,
+        ])->save();
     }
 }

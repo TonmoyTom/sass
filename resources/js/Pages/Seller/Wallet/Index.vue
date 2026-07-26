@@ -89,18 +89,40 @@
             <div
                 class="rounded-2xl border border-gray-200 bg-white p-5 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]"
             >
-                <h5 class="mb-5 font-semibold text-gray-800 dark:text-white/90">
-                    Transaction History
-                </h5>
+                <div class="mb-5 flex items-center justify-between">
+                    <h5 class="font-semibold text-gray-800 dark:text-white/90">
+                        Transaction History
+                    </h5>
+                    <Link
+                        :href="route('seller.wallet.withdraw.history')"
+                        class="text-brand-500 hover:text-brand-600 text-sm font-medium hover:underline"
+                    >
+                        Withdraw History →
+                    </Link>
+                </div>
 
                 <div
                     v-if="transactions.data.length"
                     class="divide-y divide-gray-100 dark:divide-gray-800"
                 >
-                    <div
+                    <component
+                        :is="t.withdraw_id ? Link : 'div'"
                         v-for="t in transactions.data"
                         :key="t.id"
+                        :href="
+                            t.withdraw_id
+                                ? route(
+                                      'seller.wallet.withdraw.show',
+                                      t.withdraw_id,
+                                  )
+                                : undefined
+                        "
                         class="flex items-center justify-between py-3"
+                        :class="
+                            t.withdraw_id
+                                ? 'cursor-pointer transition hover:bg-gray-50 dark:hover:bg-white/[0.02]'
+                                : ''
+                        "
                     >
                         <div class="flex items-center gap-3">
                             <div
@@ -143,7 +165,7 @@
                                 Balance: ৳{{ money(t.balance_after) }}
                             </p>
                         </div>
-                    </div>
+                    </component>
                 </div>
                 <p v-else class="py-10 text-center text-sm text-gray-400">
                     No transactions yet. Your earnings will appear here.

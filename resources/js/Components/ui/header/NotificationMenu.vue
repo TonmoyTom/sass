@@ -267,6 +267,9 @@ const loadNotifications = async () => {
     }
 };
 
+// central o tenant duitai ekhon consistent hokare ekta helper function
+const getChannelName = (userId) => `central.user.${userId}`;
+
 const setupEchoListener = () => {
     const userId = page.props.auth?.user?.id;
 
@@ -280,39 +283,39 @@ const setupEchoListener = () => {
         return;
     }
 
-    window.Echo.leave(`user.${userId}`);
+    const channelName = getChannelName(userId);
 
-    window.Echo.private(`user.${userId}`).listen(
-        '.notification.sent',
-        (data) => {
-            console.log('✅ Notification received:', data);
-            notifications.value.unshift({
-                id: data.id,
-                userName: data.userName || 'System',
-                userImage: data.userImage || '/images/user/default.jpg',
-                action: data.message || '',
-                project: data.project || '',
-                type: data.type || 'info',
-                timestamp: data.timestamp || new Date(),
-                status: 'online',
-                read: false,
-                link: data.link || '#',
-            });
+    // leftover subscription thakle thik channel name diye leave kora
+    window.Echo.leave(channelName);
 
-            notifying.value = true;
+    window.Echo.private(channelName).listen('.notification.sent', (data) => {
+        console.log('✅ Notification received:', data);
+        notifications.value.unshift({
+            id: data.id,
+            userName: data.userName || 'System',
+            userImage: data.userImage || '/images/user/default.jpg',
+            action: data.message || '',
+            project: data.project || '',
+            type: data.type || 'info',
+            timestamp: data.timestamp || new Date(),
+            status: 'online',
+            read: false,
+            link: data.link || '#',
+        });
 
-            if (notifications.value.length > 20) {
-                notifications.value.pop();
-            }
-        },
-    );
+        notifying.value = true;
 
-    console.log('Echo listening on channel: user.' + userId);
+        if (notifications.value.length > 20) {
+            notifications.value.pop();
+        }
+    });
+
+    console.log('Echo listening on channel:', channelName);
 };
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
-    loadNotifications(); // ✅ page load এ recent notifications আনো
+    loadNotifications();
     setupEchoListener();
 });
 
@@ -320,7 +323,7 @@ onUnmounted(() => {
     document.removeEventListener('click', handleClickOutside);
     const userId = page.props.auth?.user?.id;
     if (window.Echo && userId) {
-        window.Echo.leave(`user.${userId}`);
+        window.Echo.leave(getChannelName(userId));
     }
 });
 </script>

@@ -26,7 +26,7 @@
                         <h3
                             class="text-xl font-semibold text-gray-800 dark:text-white/90"
                         >
-                            INV-{{ String(order.id).padStart(6, '0') }}
+                            {{ order.invoice_number }}
                         </h3>
                         <p
                             class="mt-0.5 text-sm text-gray-500 dark:text-gray-400"
@@ -217,7 +217,7 @@
                     >
                         <span
                             class="font-medium text-gray-700 dark:text-gray-300"
-                            >Platform Earning</span
+                            >Platform Cost</span
                         >
                         <span
                             class="font-semibold text-green-600 dark:text-green-400"

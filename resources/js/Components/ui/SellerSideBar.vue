@@ -22,7 +22,7 @@
                     : 'justify-start',
             ]"
         >
-            <IconLink/>
+            <IconLink />
         </div>
         <div
             class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear"
@@ -238,11 +238,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
-import {
-    ChevronDown as ChevronDownIcon,
-    LayoutGrid as GridIcon,
-    MoreHorizontal as HorizontalDots,
-} from 'lucide-vue-next';
+import { LayoutGrid, Package, PieChart, Users, Wallet } from 'lucide-vue-next';
 
 import { useSidebar } from '@/composables/useSidebar';
 import IconLink from '../ui/IconLink.vue';
@@ -258,23 +254,23 @@ const menuGroups = [
     {
         title: 'Menu',
         items: [
-            { icon: GridIcon, name: 'Dashboard', path: '/dashboard' },
+            { icon: LayoutGrid, name: 'Dashboard', path: '/dashboard' },
+            { icon: Package, name: 'Module', path: '/seller/modules' },
+            { icon: Users, name: 'Referrals', path: '/seller/referrals' },
             {
-                icon: GridIcon,
-                name: 'Module',
-                path: '/seller/modules',
-            },
-            { icon: GridIcon, name: 'Referrals', path: '/seller/referrals' },
-            {
-                icon: GridIcon,
+                icon: PieChart,
                 name: 'Commissions',
                 path: '/seller/commissions',
             },
-            { icon: GridIcon, name: 'Wallet', path: '/seller/wallet' },
+            { icon: Wallet, name: 'Wallet', path: '/seller/wallet' },
+            {
+                icon: Wallet,
+                name: 'Two Factor',
+                path: '/seller/settings/two-factor',
+            },
         ],
     },
 ];
-
 const isActive = (path) => currentPath.value === path;
 
 const toggleSubmenu = (groupIndex, itemIndex) => {

@@ -2,11 +2,17 @@
 
 namespace App\Http\Controllers\Seller;
 
+use App\Enums\UserType;
+use App\Events\NotificationSent;
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -51,58 +57,88 @@ class WalletController extends Controller
 
     public function withdraw(Request $request): RedirectResponse
     {
-        $seller = auth()->user()->sellerProfile;
+        $user = auth()->user();
+        $seller = $user->sellerProfile;
         abort_unless($seller, 403, 'Seller profile not found');
 
         $wallet = $seller->wallet;
         abort_unless($wallet, 403, 'Wallet not found');
 
-        $request->validate([
-            'amount' => ['required', 'numeric', 'min:10'],
-            'method' => ['required', 'in:bkash,bank'],
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:20'],
+            'method' => ['required', 'in:bkash,nagad,rocket'],
+            'account_name' => ['required', 'string', 'max:255'],
+            'account_number' => ['required', 'regex:/^01[3-9]\d{8}$/'],
             'note' => ['nullable', 'string', 'max:255'],
+        ], [
+            'account_number.regex' => 'Valid BD mobile number din (01XXXXXXXXX).',
         ]);
 
-        $amount = (float) $request->amount;
+        $amount = (float) $data['amount'];
 
-        if ($wallet->available_balance < $amount) {
-            return back()->withErrors(['amount' => 'Insufficient balance.']);
-        }
+        DB::transaction(function () use ($wallet, $seller, $data, $amount) {
+            $wallet = Wallet::whereKey($wallet->id)->lockForUpdate()->first();
 
-        // pending withdraw request already ache?
-        $hasPending = WithdrawRequest::where('seller_id', $seller->id)
-            ->where('status', 'pending')
-            ->exists();
+            if ($wallet->available_balance < $amount) {
+                throw ValidationException::withMessages(['amount' => 'Insufficient balance.']);
+            }
 
-        if ($hasPending) {
-            return back()->withErrors(['amount' => 'You already have a pending withdraw request.']);
-        }
+            $hasPending = WithdrawRequest::where('seller_id', $seller->id)
+                ->where('status', 'pending')
+                ->lockForUpdate()
+                ->exists();
 
-        \DB::transaction(function () use ($wallet, $seller, $request, $amount) {
-            // balance hold (available → pending)
+            if ($hasPending) {
+                throw ValidationException::withMessages(['amount' => 'You already have a pending withdraw request.']);
+            }
+
+            $balanceBefore = $wallet->available_balance;
+
             $wallet->decrement('available_balance', $amount);
             $wallet->increment('pending_balance', $amount);
 
-            // withdraw request create
-            WithdrawRequest::create([
+            $withdrawRequest = WithdrawRequest::create([
                 'seller_id' => $seller->id,
                 'wallet_id' => $wallet->id,
                 'amount' => $amount,
-                'method' => $request->method,
-                'note' => $request->note,
+                'method' => $data['method'],
+                'account_name' => $data['account_name'],
+                'account_number' => $data['account_number'],
+                'note' => $data['note'] ?? null,
                 'status' => 'pending',
             ]);
 
-            // transaction log
             WalletTransaction::create([
                 'wallet_id' => $wallet->id,
                 'type' => 'withdraw_request',
                 'amount' => -$amount,
-                'balance_before' => $wallet->available_balance, // ← add
-                'balance_after' => $wallet->available_balance - $amount,                'description' => 'Withdraw request via '.$request->method,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceBefore - $amount,
+                'description' => 'Withdraw request via '.$data['method'],
                 'reference_type' => 'withdraw_request',
+                'reference_id' => $withdrawRequest->id,
             ]);
         });
+
+        $formattedAmount = number_format($amount, 2);
+
+        // admin(s) ke notify
+        User::where('user_type', UserType::SUPER_ADMIN)
+            ->pluck('id')
+            ->each(fn ($adminId) => NotificationSent::dispatch(
+                "New withdraw request: {$user->name} has requested ৳{$formattedAmount} via {$data['method']}.",
+                $adminId,
+                'info',
+                '/admin/withdraw-requests'
+            ));
+
+        // seller confirmation
+        NotificationSent::dispatch(
+            "Your withdraw request of ৳{$formattedAmount} via {$data['method']} has been submitted. You'll be notified once it's processed.",
+            $user->id,
+            'success',
+            '/seller/wallet'
+        );
 
         return to_route('seller.wallet.index')->with('success', 'Withdraw request submitted successfully.');
     }
@@ -119,20 +155,24 @@ class WalletController extends Controller
             ->latest()
             ->first();
 
+        // latest request (je kono status) — prefill er jonno
+        $lastRequest = WithdrawRequest::where('seller_id', $seller->id)
+            ->latest()
+            ->first();
+
         return Inertia::render('Seller/Wallet/Withdraw', [
             'wallet' => [
-                'available_balance' => $wallet?->available_balance ?? 0,
-                'currency' => $wallet?->currency ?? 'BDT',
-            ],
-            'payout' => [
-                'bkash_number' => $seller->bkash_number,
-                'bank_name' => $seller->bank_name,
-                'bank_account' => $seller->bank_account,
+                'available_balance' => $wallet->available_balance,
             ],
             'pending_request' => $pendingRequest ? [
                 'amount' => $pendingRequest->amount,
                 'method' => $pendingRequest->method,
-                'created_at' => $pendingRequest->created_at->format('d M Y, h:i A'),
+                'created_at' => $pendingRequest->created_at->diffForHumans(),
+            ] : null,
+            'last_request' => $lastRequest ? [
+                'method' => $lastRequest->method,
+                'account_name' => $lastRequest->account_name,
+                'account_number' => $lastRequest->account_number,
             ] : null,
         ]);
     }
@@ -191,10 +231,11 @@ class WalletController extends Controller
                 'note' => $withdraw->note,
                 'created_at' => $withdraw->created_at?->format('d M Y, h:i A'),
                 'processed_at' => $withdraw->processed_at?->format('d M Y, h:i A'),
+                'approved_by' => $withdraw->approvedBy?->name,
+                'account_number' => $withdraw->account_number,
+                'account_name' => $withdraw->account_name,
             ],
             'payout' => [
-                'bkash_number' => $seller->bkash_number,
-                'bank_name' => $seller->bank_name,
                 'bank_account' => $seller->bank_account,
             ],
         ]);

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Filterable;
 use App\Traits\HasSeo;
 use Illuminate\Database\Eloquent\Model;
 
 class ModulePackage extends Model
 {
-    use HasSeo;
+    use Filterable, HasSeo;
 
     protected $table = 'modules';
 

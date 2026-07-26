@@ -17,166 +17,121 @@
                 </Link>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead
-                        class="border-b border-gray-200 text-xs text-gray-500 uppercase dark:border-gray-800 dark:text-gray-400"
-                    >
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Seller</th>
-                            <th class="px-4 py-3 font-medium">Referral Code</th>
-                            <th class="px-4 py-3 font-medium">Commission</th>
-                            <th class="px-4 py-3 font-medium">Sales</th>
-                            <th class="px-4 py-3 font-medium">Balance</th>
-                            <th class="px-4 py-3 font-medium">Status</th>
-                            <th class="px-4 py-3 text-right font-medium">
-                                Actions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody
-                        class="divide-y divide-gray-100 dark:divide-gray-800"
-                    >
-                        <tr
-                            v-for="seller in sellers.data"
-                            :key="seller.id"
-                            class="hover:bg-gray-50 dark:hover:bg-white/[0.02]"
-                        >
-                            <td class="px-4 py-3">
-                                <div
-                                    class="font-medium text-gray-800 dark:text-white/90"
-                                >
-                                    {{ seller.name }}
-                                </div>
-                                <div
-                                    class="text-xs text-gray-500 dark:text-gray-400"
-                                >
-                                    {{ seller.email }}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span
-                                    class="rounded bg-gray-100 px-2 py-1 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                                >
-                                    {{ seller.referral_code }}
-                                </span>
-                            </td>
-                            <td
-                                class="px-4 py-3 text-gray-600 dark:text-gray-400"
-                            >
-                                {{ seller.commission_rate }}%
-                            </td>
-                            <td
-                                class="px-4 py-3 text-gray-600 dark:text-gray-400"
-                            >
-                                {{ seller.total_sales }}
-                            </td>
-                            <td
-                                class="px-4 py-3 font-medium text-gray-800 dark:text-white/90"
-                            >
-                                ৳{{ formatMoney(seller.balance) }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <span
-                                    :class="statusClass(seller.status)"
-                                    class="rounded-full px-2.5 py-1 text-xs font-medium capitalize"
-                                >
-                                    {{ seller.status }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <div
-                                    class="flex items-center justify-end gap-2"
-                                >
-                                    <Link
-                                        :href="
-                                            route(
-                                                'admin.sellers.show',
-                                                seller.id,
-                                            )
-                                        "
-                                        class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
-                                    >
-                                        View
-                                    </Link>
-                                    <Link
-                                        :href="
-                                            route(
-                                                'admin.sellers.edit',
-                                                seller.id,
-                                            )
-                                        "
-                                        class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
-                                    >
-                                        Edit
-                                    </Link>
-                                    <button
-                                        v-if="
-                                            $page.props.auth?.user
-                                                ?.user_type === 'super_admin' &&
-                                            seller.user_id
-                                        "
-                                        @click="loginAsSeller(seller)"
-                                        class="bg-brand-500 hover:bg-brand-600 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-                                    >
-                                        Login
-                                    </button>
-                                    <button
-                                        @click="destroy(seller)"
-                                        class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr v-if="!sellers.data.length">
-                            <td
-                                colspan="7"
-                                class="px-4 py-10 text-center text-gray-500 dark:text-gray-400"
-                            >
-                                No sellers yet. Create your first one.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <div
-                v-if="sellers.links.length > 3"
-                class="mt-5 flex flex-wrap gap-1"
+            <DataTable
+                :data="sellers"
+                :filters="filters"
+                route-name="admin.sellers.index"
+                :columns="[
+                    { key: 'name', label: 'Seller' },
+                    { key: 'referral_code', label: 'Referral Code' },
+                    {
+                        key: 'commission_rate',
+                        label: 'Commission',
+                        sortable: true,
+                    },
+                    { key: 'total_sales', label: 'Sales', sortable: true },
+                    { key: 'balance', label: 'Balance' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'actions', label: '' },
+                ]"
             >
-                <template v-for="(link, i) in sellers.links" :key="i">
-                    <Link
-                        v-if="link.url"
-                        :href="link.url"
-                        v-html="link.label"
-                        class="rounded-lg px-3 py-1.5 text-sm"
-                        :class="
-                            link.active
-                                ? 'bg-brand-500 text-white'
-                                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.05]'
-                        "
-                    />
-                    <span
-                        v-else
-                        v-html="link.label"
-                        class="cursor-default rounded-lg px-3 py-1.5 text-sm text-gray-400 opacity-50"
-                    />
+                <template #filters="{ filters: f, apply }">
+                    <select
+                        v-model="f.status"
+                        @change="apply"
+                        class="h-10 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 focus:outline-hidden dark:border-gray-700 dark:text-gray-300"
+                    >
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="pending">Pending</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
                 </template>
-            </div>
+
+                <template #row="{ row: seller }">
+                    <td class="px-4 py-3">
+                        <div
+                            class="font-medium text-gray-800 dark:text-white/90"
+                        >
+                            {{ seller.name }}
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ seller.email }}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span
+                            class="rounded bg-gray-100 px-2 py-1 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                        >
+                            {{ seller.referral_code }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        {{ seller.commission_rate }}%
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        {{ seller.total_sales }}
+                    </td>
+                    <td
+                        class="px-4 py-3 font-medium text-gray-800 dark:text-white/90"
+                    >
+                        ৳{{ formatMoney(seller.balance) }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span
+                            :class="statusClass(seller.status)"
+                            class="rounded-full px-2.5 py-1 text-xs font-medium capitalize"
+                        >
+                            {{ seller.status }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <Link
+                                :href="route('admin.sellers.show', seller.id)"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
+                            >
+                                View
+                            </Link>
+                            <Link
+                                :href="route('admin.sellers.edit', seller.id)"
+                                class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400"
+                            >
+                                Edit
+                            </Link>
+                            <a
+                                target="_blank"
+                                v-if="
+                                    $page.props.auth?.user?.user_type ===
+                                        'super_admin' && seller.user_id
+                                "
+                                @click="loginAsSeller(seller)"
+                                class="bg-brand-500 hover:bg-brand-600 cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-white"
+                            >
+                                Login
+                            </a>
+                            <button
+                                @click="destroy(seller)"
+                                class="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-800"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </template>
+            </DataTable>
         </div>
     </AdminLayout>
 </template>
 
 <script setup>
+import DataTable from '@/Components/ui/DataTable.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
 
 defineProps({
     sellers: Object,
+    filters: { type: Object, default: () => ({}) },
 });
 
 const formatMoney = (val) =>

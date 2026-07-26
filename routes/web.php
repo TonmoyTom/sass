@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ImpersonateController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PaymentSettingController;
+use App\Http\Controllers\Admin\RenewalReminderController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SellerController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\WithdrawRequestController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\CentralSitemapController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
@@ -23,6 +26,7 @@ use App\Http\Controllers\Seller\CommissionController;
 use App\Http\Controllers\Seller\ModuleRequestController;
 use App\Http\Controllers\Seller\ReferralController;
 use App\Http\Controllers\Seller\WalletController;
+use App\Http\Controllers\SessionController;
 use App\Http\Controllers\Tenant\CartController;
 use App\Http\Controllers\Tenant\CheckoutController;
 use App\Models\SiteSetting;
@@ -138,6 +142,8 @@ Route::domain('myapp.test')->group(function () {
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+        Route::post('/session/clear', [SessionController::class, 'clearSession'])->name('session.clear');
+        Route::post('/session/clear-cookies', [SessionController::class, 'clearCookies'])->name('session.clear-cookies');
 
         // Generic dashboard - redirects based on user type
         Route::get('/dashboard', function () {
@@ -240,12 +246,16 @@ Route::domain('myapp.test')->group(function () {
             Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
             Route::post('/settings/logo', [SettingController::class, 'updateLogo'])->name('settings.logo');
             Route::post('/settings/favicon', [SettingController::class, 'updateFavicon'])->name('settings.fav');
-
+            Route::post('/renewal-reminders/send/{id}', [RenewalReminderController::class, 'send'])->name('renewal-reminders.send');
             // // Settings
             // Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])
             //     ->name('settings.index');
             // Route::patch('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])
             //     ->name('settings.update');
+            Route::get('/settings/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
+            Route::get('/payment-settings', [PaymentSettingController::class, 'index'])->name('admin.payment-settings.index');
+            Route::patch('/payment-settings/{method}', [PaymentSettingController::class, 'update'])->name('admin.payment-settings.update');
+
         });
 
     // ─────────────────────────────────────────────
@@ -286,6 +296,7 @@ Route::domain('myapp.test')->group(function () {
                 ->name('wallet.withdraw.history');
             Route::get('/wallet/withdraw/{withdraw}', [WalletController::class, 'withdrawShow'])
                 ->name('wallet.withdraw.show');
+            Route::get('/settings/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
 
         });
 
@@ -317,6 +328,8 @@ Route::domain('myapp.test')->group(function () {
             Route::get('/orders', [App\Http\Controllers\Tenant\OrderController::class, 'index'])->name('orders.index');
             Route::get('/orders/{order}', [App\Http\Controllers\Tenant\OrderController::class, 'show'])->name('orders.show');
             Route::get('/orders/{order}/invoice', [App\Http\Controllers\Tenant\OrderController::class, 'invoice'])->name('orders.invoice');
+
+            Route::get('/settings/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
 
         });
 

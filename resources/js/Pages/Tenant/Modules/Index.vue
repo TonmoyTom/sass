@@ -1,7 +1,64 @@
+<script setup>
+import TenantLayout from '@/Layouts/TenantLayout.vue';
+import { Link, router } from '@inertiajs/vue3';
+import { Check, LayoutGrid, ShoppingCart } from 'lucide-vue-next';
+import { ref } from 'vue';
+
+defineProps({
+    modules: Array,
+    cartCount: Number,
+});
+
+const billingCycle = ref('monthly');
+
+const money = (val) =>
+    Number(val ?? 0).toLocaleString('en-BD', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    });
+
+const formatLimit = (key) =>
+    key
+        .replace(/^max_/, '')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
+
+const addToCart = (module, tier) => {
+    router.post(
+        route('tenant.cart.add'),
+        {
+            module_tier_id: tier.id,
+            billing_cycle: billingCycle.value,
+        },
+        { preserveScroll: true },
+    );
+};
+
+// ← FIX: shudhu tier match check koro, billing-cycle toggle-er sathe na
+const isOwnedTier = (module, tier) => module.owned_tier_id === tier.id;
+
+// ← toggle-e dekha billing cycle ta ki owned billing cycle-er sathe mile kina (info-only)
+const isSameBillingCycle = (module) =>
+    module.owned_billing_cycle === billingCycle.value;
+
+const tierPrice = (tier) =>
+    billingCycle.value === 'yearly' ? tier.yearly_price : tier.monthly_price;
+
+const renewModule = (module) => {
+    router.post(
+        route('tenant.modules.renew', module.id),
+        {},
+        { preserveScroll: true },
+    );
+};
+</script>
+
 <template>
     <TenantLayout title="Modules">
         <div class="space-y-6">
-            <!-- ── Header ── -->
+            <!-- Header (same) -->
             <div
                 class="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-900"
             >
@@ -26,7 +83,6 @@
                     </div>
                 </div>
 
-                <!-- cart button -->
                 <Link
                     :href="route('tenant.cart.index')"
                     class="bg-brand-500 hover:bg-brand-600 relative inline-flex shrink-0 items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
@@ -42,7 +98,7 @@
                 </Link>
             </div>
 
-            <!-- ── Billing cycle toggle ── -->
+            <!-- Billing toggle (same) -->
             <div
                 class="inline-flex rounded-xl bg-gray-100 p-1 dark:bg-gray-800"
             >
@@ -73,7 +129,7 @@
                 </button>
             </div>
 
-            <!-- ── Modules ── -->
+            <!-- Modules -->
             <div class="space-y-6">
                 <section
                     v-for="m in modules"
@@ -92,7 +148,7 @@
                         >
                             <ShoppingCart class="h-5 w-5" />
                         </div>
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <h4
                                     class="text-lg font-semibold text-gray-900 dark:text-white"
@@ -135,6 +191,15 @@
                                 Lifetime access
                             </p>
                         </div>
+
+                        <!-- Renew button — module header-e, expiring/active thakle -->
+                        <button
+                            v-if="m.is_owned && m.expires_at"
+                            @click="renewModule(m)"
+                            class="shrink-0 rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/20"
+                        >
+                            Renew
+                        </button>
                     </div>
 
                     <!-- tiers -->
@@ -146,7 +211,7 @@
                             :key="tier.id"
                             class="relative rounded-xl border p-4 transition"
                             :class="
-                                isCurrentPlan(m, tier)
+                                isOwnedTier(m, tier)
                                     ? 'border-green-300 bg-green-50/40 dark:border-green-700 dark:bg-green-900/10'
                                     : tier.is_popular
                                       ? 'border-brand-300 bg-brand-50/40 ring-brand-100 dark:border-brand-700 dark:bg-brand-900/10 dark:ring-brand-900/40 ring-1'
@@ -154,7 +219,7 @@
                             "
                         >
                             <span
-                                v-if="isCurrentPlan(m, tier)"
+                                v-if="isOwnedTier(m, tier)"
                                 class="absolute -top-2.5 left-4 rounded-full bg-green-500 px-2 py-0.5 text-[10px] font-bold text-white"
                             >
                                 CURRENT
@@ -192,7 +257,6 @@
                                 >
                             </p>
 
-                            <!-- limits -->
                             <ul
                                 v-if="Object.keys(tier.limits).length"
                                 class="mt-3 space-y-1.5"
@@ -209,23 +273,32 @@
                                 </li>
                             </ul>
 
-                            <!-- button -->
-                            <div
-                                v-if="isCurrentPlan(m, tier)"
-                                class="mt-4 w-full rounded-lg bg-green-50 py-2 text-center text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                            >
-                                ✓ Current Plan
-                            </div>
+                            <!-- ── FIXED BUTTON LOGIC ── -->
+
+                            <!-- Case 1: ei tier-i owned tier -->
+                            <template v-if="isOwnedTier(m, tier)">
+                                <div
+                                    class="mt-4 w-full rounded-lg bg-green-50 py-2 text-center text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                                >
+                                    ✓ Current Plan
+                                </div>
+                                <!-- billing cycle na milele, ekta subtle note + change option -->
+                                <button
+                                    v-if="!isSameBillingCycle(m)"
+                                    @click="addToCart(m, tier)"
+                                    class="text-brand-600 dark:text-brand-400 mt-1.5 w-full text-center text-xs hover:underline"
+                                >
+                                    Switch to {{ billingCycle }} billing
+                                </button>
+                            </template>
+
+                            <!-- Case 2: owned module, kintu onno tier -->
                             <template v-else-if="m.is_owned">
                                 <button
                                     @click="addToCart(m, tier)"
                                     class="border-brand-300 text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-900/20 mt-4 w-full rounded-lg border py-2 text-sm font-medium"
                                 >
-                                    {{
-                                        m.owned_tier_id === tier.id
-                                            ? 'Change billing'
-                                            : 'Switch to this'
-                                    }}
+                                    Switch to this
                                 </button>
                                 <p
                                     v-if="m.credit > 0"
@@ -241,6 +314,8 @@
                                     }}
                                 </p>
                             </template>
+
+                            <!-- Case 3: module-i owned na -->
                             <button
                                 v-else
                                 @click="addToCart(m, tier)"
@@ -252,7 +327,6 @@
                     </div>
                 </section>
 
-                <!-- empty -->
                 <div
                     v-if="!modules.length"
                     class="rounded-2xl border border-dashed border-gray-200 py-12 text-center text-sm text-gray-400 dark:border-gray-700 dark:text-gray-500"
@@ -263,49 +337,3 @@
         </div>
     </TenantLayout>
 </template>
-
-<script setup>
-import TenantLayout from '@/Layouts/TenantLayout.vue';
-import { Link, router } from '@inertiajs/vue3';
-import { Check, LayoutGrid, ShoppingCart } from 'lucide-vue-next';
-import { ref } from 'vue';
-
-defineProps({
-    modules: Array,
-    cartCount: Number,
-});
-
-const billingCycle = ref('monthly');
-
-const money = (val) =>
-    Number(val ?? 0).toLocaleString('en-BD', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-    });
-
-const formatLimit = (key) =>
-    key
-        .replace(/^max_/, '')
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-
-const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '');
-
-const addToCart = (module, tier) => {
-    router.post(
-        route('tenant.cart.add'),
-        {
-            module_tier_id: tier.id,
-            billing_cycle: billingCycle.value,
-        },
-        { preserveScroll: true },
-    );
-};
-
-const isCurrentPlan = (module, tier) =>
-    module.owned_tier_id === tier.id &&
-    module.owned_billing_cycle === billingCycle.value;
-
-const tierPrice = (tier) =>
-    billingCycle.value === 'yearly' ? tier.yearly_price : tier.monthly_price;
-</script>

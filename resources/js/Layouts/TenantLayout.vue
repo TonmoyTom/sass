@@ -12,7 +12,14 @@
                 class="relative rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
             >
                 <!-- theme toggle (top-right) -->
-                <div class="absolute top-6 right-6">
+                <div class="absolute top-6 right-6 flex items-center gap-2">
+                    <Link
+                        href="/tenant/settings/two-factor"
+                        class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+                        title="Security Settings"
+                    >
+                        <ShieldCheck class="h-4.5 w-4.5" />
+                    </Link>
                     <ThemeToggler />
                 </div>
 
@@ -77,7 +84,13 @@
 import ThemeToggler from '@/Components/common/ThemeToggler.vue';
 import ImpersonationBanner from '@/Components/ui/ImpersonationBanner.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { ExternalLink, Globe, Image, LogOut } from 'lucide-vue-next';
+import {
+    ExternalLink,
+    Globe,
+    Image,
+    LogOut,
+    ShieldCheck,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import IconLink from '../../js/Components/ui/IconLink.vue';
 

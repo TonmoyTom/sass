@@ -59,16 +59,29 @@
                                 Invoice
                             </h1>
                             <p class="mt-1 text-sm text-gray-500">
-                                {{ order.invoice_no }}
+                                {{ order.invoice_number }}
                             </p>
                         </div>
-                        <div class="text-right">
-                            <p class="text-brand-600 text-lg font-bold">
-                                EduSaaS
-                            </p>
-                            <p class="mt-0.5 text-xs text-gray-400">
-                                platform.com
-                            </p>
+                        <div class="flex items-center justify-end gap-3">
+                            <img
+                                v-if="order.platform?.logo_url"
+                                :src="order.platform.logo_url"
+                                :alt="order.platform?.name"
+                                class="h-10 w-10 shrink-0 rounded-lg border border-gray-200 object-contain dark:border-gray-700"
+                            />
+                            <div class="text-right">
+                                <p
+                                    class="text-brand-600 text-lg leading-tight font-bold"
+                                >
+                                    {{ order.platform?.name ?? 'EduSaaS' }}
+                                </p>
+                                <p
+                                    v-if="order.platform?.domain"
+                                    class="mt-0.5 text-xs text-gray-400"
+                                >
+                                    {{ order.platform.domain }}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -178,12 +191,22 @@
                                     >৳{{ money(order.amount) }}</span
                                 >
                             </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Commission</span>
+                                <span class="text-gray-900"
+                                    >৳{{ money(order.commission) }}</span
+                                >
+                            </div>
                             <div
                                 class="flex justify-between border-t border-gray-200 pt-2.5 text-base font-bold"
                             >
                                 <span class="text-gray-900">Total</span>
                                 <span class="text-gray-900"
-                                    >৳{{ money(order.amount) }}</span
+                                    >৳{{
+                                        money(
+                                            order.admin_amount ?? order.amount,
+                                        )
+                                    }}</span
                                 >
                             </div>
                         </div>

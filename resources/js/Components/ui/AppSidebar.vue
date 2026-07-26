@@ -423,6 +423,16 @@ const rawMenuGroups = [
                         path: '/admin/settings',
                         permission: 'settings.view',
                     },
+                    {
+                        name: 'Payment',
+                        path: '/admin/payment-settings',
+                        permission: 'settings.view',
+                    },
+                    {
+                        name: 'Two Factor',
+                        path: '/admin/settings/two-factor',
+                        permission: 'settings.view',
+                    },
                 ],
             },
         ],

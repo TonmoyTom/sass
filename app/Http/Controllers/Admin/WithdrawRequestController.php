@@ -2,64 +2,82 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\NotificationSent;
 use App\Http\Controllers\Controller;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class WithdrawRequestController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:withdraw.view')->only(['index', 'show']);
+        $this->middleware('can:withdraw.approve')->only(['approve']);
+        $this->middleware('can:withdraw.reject')->only(['reject']);
+    }
 
-  public function __construct()
-  {
-      $this->middleware('can:withdraw.view')->only(['index', 'show']);
-      $this->middleware('can:withdraw.approve')->only(['approve']);
-      $this->middleware('can:withdraw.reject')->only(['reject']);
-  }
-  
     public function index(Request $request): Response
     {
-        $requests = WithdrawRequest::with(['seller.user'])
-            ->when($request->status, fn ($q) => $q->where('status', $request->status))
-            ->latest()
-            ->paginate(20)
-            ->through(fn ($w) => [
-                'id' => $w->id,
-                'amount' => $w->amount,
-                'paid_amount' => $w->paid_amount ?? 0,
-                'method' => $w->method,
-                'status' => $w->status,
-                'note' => $w->note,
-                'seller_name' => $w->seller?->user?->name ?? '—',
-                'seller_email' => $w->seller?->user?->email ?? '—',
-                'bkash_number' => $w->seller?->bkash_number,
-                'bank_name' => $w->seller?->bank_name,
-                'bank_account' => $w->seller?->bank_account,
-                'created_at' => $w->created_at?->format('d M Y, h:i A'),
-                'processed_at' => $w->processed_at?->format('d M Y, h:i A'),
-            ]);
+        $requests = WithdrawRequest::query()
+            ->with(['seller.user'])
+            ->filterAndCache(
+                $request,
+                searchable: ['method'],
+                filterable: ['status', 'method'],
+                sortable: ['amount', 'status', 'created_at'],
+                ttlSeconds: 120,
+                perPage: 20,
+                transform: fn ($w) => [
+                    'id' => $w->id,
+                    'amount' => $w->amount,
+                    'paid_amount' => $w->paid_amount ?? 0,
+                    'method' => $w->method,
+                    'status' => $w->status,
+                    'note' => $w->note,
+                    'seller_name' => $w->seller?->user?->name ?? '—',
+                    'seller_email' => $w->seller?->user?->email ?? '—',
+                    'bkash_number' => $w->seller?->bkash_number,
+                    'bank_name' => $w->seller?->bank_name,
+                    'bank_account' => $w->seller?->bank_account,
+                    'created_at' => $w->created_at?->format('d M Y, h:i A'),
+                    'processed_at' => $w->processed_at?->format('d M Y, h:i A'),
+                ]
+            );
+        $stats = Cache::store('redis')
+            ->tags(['table:withdraw_requests'])
+            ->remember('withdraw_stats', 120, function () {
+                $s = WithdrawRequest::selectRaw("
+                    SUM(CASE WHEN status = 'pending'  THEN amount ELSE 0 END)                     as pending_amount,
+                    SUM(CASE WHEN status = 'approved' THEN paid_amount ELSE 0 END)                as approved_amount,
+                    SUM(CASE WHEN status = 'approved' THEN (amount - paid_amount) ELSE 0 END)     as refunded_amount,
+                    COUNT(CASE WHEN status = 'pending' THEN 1 END)                                as pending_count
+                ")->first();
 
-        $stats = WithdrawRequest::selectRaw("
-                SUM(CASE WHEN status = 'pending'  THEN amount ELSE 0 END)                           as pending_amount,
-                SUM(CASE WHEN status = 'approved' THEN paid_amount ELSE 0 END)                      as approved_amount,
-                SUM(CASE WHEN status = 'approved' THEN (amount - paid_amount) ELSE 0 END)           as refunded_amount,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END)                                      as pending_count
-            ")->first();
+                return [
+                    'pending_amount' => (float) $s->pending_amount,
+                    'approved_amount' => (float) $s->approved_amount,
+                    'refunded_amount' => (float) $s->refunded_amount,
+                    'pending_count' => (int) $s->pending_count,
+                ];
+            });
 
         return Inertia::render('Admin/WithdrawRequests/Index', [
             'requests' => $requests,
-            'filters' => $request->only('status'),
-            'stats' => [
-                'pending_amount' => (float) $stats->pending_amount,
-                'approved_amount' => (float) $stats->approved_amount,
-                'refunded_amount' => (float) $stats->refunded_amount,
-                'pending_count' => (int) $stats->pending_count,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'status' => $request->input('status', ''),
+                'method' => $request->input('method', ''),
+                'sort_by' => $request->input('sort_by', 'created_at'),
+                'sort_dir' => $request->input('sort_dir', 'desc'),
             ],
+            'stats' => $stats,
         ]);
     }
 
@@ -77,7 +95,7 @@ class WithdrawRequestController extends Controller
                 'note' => $withdraw->note,
                 'seller_name' => $withdraw->seller?->user?->name ?? '—',
                 'seller_email' => $withdraw->seller?->user?->email ?? '—',
-                'bkash_number' => $withdraw->seller?->bkash_number,
+                'bkash_number' => $withdraw->account_number,
                 'bank_name' => $withdraw->seller?->bank_name,
                 'bank_account' => $withdraw->seller?->bank_account,
                 'created_at' => $withdraw->created_at?->format('d M Y, h:i A'),
@@ -99,13 +117,13 @@ class WithdrawRequestController extends Controller
         $remaining = $withdraw->amount - $paidAmount;
 
         DB::transaction(function () use ($withdraw, $request, $paidAmount, $remaining) {
-            $wallet = Wallet::find($withdraw->wallet_id);
+            $wallet = Wallet::whereKey($withdraw->wallet_id)->lockForUpdate()->first();
 
-            // pending balance theke paid amount ber koro
+            $pendingBefore = $wallet->pending_balance;
+
             $wallet->decrement('pending_balance', $withdraw->amount);
             $wallet->increment('total_withdrawn', $paidAmount);
 
-            // remaining refund → available balance
             if ($remaining > 0) {
                 $wallet->increment('available_balance', $remaining);
             }
@@ -114,10 +132,11 @@ class WithdrawRequestController extends Controller
                 'wallet_id' => $wallet->id,
                 'type' => 'approved',
                 'amount' => -$paidAmount,
-                'balance_before' => $wallet->pending_balance,
-                'balance_after' => $wallet->pending_balance - $withdraw->amount,
+                'balance_before' => $pendingBefore,
+                'balance_after' => $pendingBefore - $withdraw->amount,
                 'description' => 'Withdraw approved ৳'.$paidAmount.' via '.$withdraw->method.($request->note ? ' — '.$request->note : ''),
                 'reference_type' => 'withdraw_request',
+                'reference_id' => $withdraw->id,
             ]);
 
             $withdraw->update([
@@ -125,8 +144,27 @@ class WithdrawRequestController extends Controller
                 'paid_amount' => $paidAmount,
                 'note' => $request->note ?? $withdraw->note,
                 'processed_at' => now(),
+                'approved_by' => auth()->id(),
             ]);
         });
+
+        // seller ke notify
+        $sellerUserId = $withdraw->seller?->user_id;
+
+        if ($sellerUserId) {
+            $formattedPaid = number_format($paidAmount, 2);
+
+            $message = $remaining > 0
+                ? "Your withdraw request has been approved. ৳{$formattedPaid} paid via {$withdraw->method}, remaining ৳".number_format($remaining, 2).' returned to your available balance.'
+                : "Your withdraw request of ৳{$formattedPaid} has been approved and paid via {$withdraw->method}.";
+
+            NotificationSent::dispatch(
+                $message,
+                $sellerUserId,
+                'success',
+                '/seller/wallet'
+            );
+        }
 
         return back()->with('success', 'Payment of ৳'.number_format($paidAmount, 2).' approved successfully.');
     }
@@ -140,9 +178,10 @@ class WithdrawRequestController extends Controller
         ]);
 
         DB::transaction(function () use ($withdraw, $request) {
-            $wallet = Wallet::find($withdraw->wallet_id);
+            $wallet = Wallet::whereKey($withdraw->wallet_id)->lockForUpdate()->first();
 
-            // refund: pending → available
+            $availableBefore = $wallet->available_balance;
+
             $wallet->decrement('pending_balance', $withdraw->amount);
             $wallet->increment('available_balance', $withdraw->amount);
 
@@ -150,18 +189,35 @@ class WithdrawRequestController extends Controller
                 'wallet_id' => $wallet->id,
                 'type' => 'credit',
                 'amount' => $withdraw->amount,
-                'balance_before' => $wallet->available_balance,
-                'balance_after' => $wallet->available_balance + $withdraw->amount,
+                'balance_before' => $availableBefore,
+                'balance_after' => $availableBefore + $withdraw->amount,
                 'description' => 'Withdraw rejected — refunded. '.($request->reason ?? ''),
                 'reference_type' => 'withdraw_request',
+                'reference_id' => $withdraw->id,
             ]);
 
             $withdraw->update([
                 'status' => 'rejected',
                 'note' => $request->reason ?? $withdraw->note,
                 'processed_at' => now(),
+                'approved_by' => auth()->id(),
             ]);
         });
+
+        // seller ke notify
+        $sellerUserId = $withdraw->seller?->user_id;
+
+        if ($sellerUserId) {
+            $formattedAmount = number_format($withdraw->amount, 2);
+            $reason = $request->reason ? " Reason: {$request->reason}" : '';
+
+            NotificationSent::dispatch(
+                "Your withdraw request of ৳{$formattedAmount} has been rejected. The amount has been returned to your available balance.{$reason}",
+                $sellerUserId,
+                'error',
+                '/seller/wallet'
+            );
+        }
 
         return back()->with('success', 'Withdraw request rejected and amount refunded.');
     }

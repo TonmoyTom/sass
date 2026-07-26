@@ -9,16 +9,25 @@ use Illuminate\Support\Facades\Auth;
 
 class ImpersonateController extends Controller
 {
-
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (!$request->user()?->isSuperAdmin()) {
+            if (! $request->user()?->isSuperAdmin()) {
                 abort(403, 'Only super admin can impersonate.');
             }
+
             return $next($request);
-        });
+        })->only('start');
+
+        $this->middleware(function ($request, $next) {
+            if (! session()->has('impersonator_id')) {
+                abort(403, 'Not impersonating anyone.');
+            }
+
+            return $next($request);
+        })->only('stop');
     }
+
     /**
      * Start impersonating a user. Stores the original admin's ID in session
      * so we can return back to it later.
@@ -36,7 +45,7 @@ class ImpersonateController extends Controller
 
         // Store original admin id (don't overwrite if already impersonating, to
         // prevent nested impersonation chains)
-        if (!session()->has('impersonator_id')) {
+        if (! session()->has('impersonator_id')) {
             session(['impersonator_id' => auth()->id()]);
         }
 
@@ -52,9 +61,9 @@ class ImpersonateController extends Controller
      */
     public function stop(): RedirectResponse
     {
-        $adminId = session('impersonator_id');
 
-        if (!$adminId) {
+        $adminId = session('impersonator_id');
+        if (! $adminId) {
             return redirect()->route('dashboard');
         }
 
@@ -62,8 +71,9 @@ class ImpersonateController extends Controller
 
         $admin = User::find($adminId);
 
-        if (!$admin) {
+        if (! $admin) {
             Auth::logout();
+
             return redirect()->route('login');
         }
 

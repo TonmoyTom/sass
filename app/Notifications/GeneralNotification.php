@@ -10,6 +10,10 @@ class GeneralNotification extends Notification
         public string $message,
         public string $type = 'info',
         public ?string $link = null,
+        public ?int $senderId = null,
+        public ?string $tenantId = null,
+        public ?string $admin = null,
+
     ) {}
 
     public function via($notifiable)
@@ -23,6 +27,9 @@ class GeneralNotification extends Notification
             'message' => $this->message,
             'type' => $this->type,
             'link' => $this->link,
+            'sender_id' => $this->senderId,
+            'tenant_id' => $this->tenantId,
+            'admin' => $this->admin,
         ];
     }
 }

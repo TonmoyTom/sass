@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Seller extends Model
 {
+    use Filterable;
+
+    protected $connection = 'mysql';
+
     protected $fillable = [
         'user_id', 'referral_code', 'status', 'commission_rate',
         'total_sales', 'total_earned', 'bank_name', 'bank_account',

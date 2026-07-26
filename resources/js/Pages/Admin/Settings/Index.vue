@@ -16,6 +16,8 @@
                     </p>
                 </div>
 
+              
+
                 <form class="flex flex-col gap-5" @submit.prevent="submit">
                     <!-- Logo + Identity -->
                     <section
@@ -399,6 +401,7 @@
 </template>
 
 <script setup>
+
 import FormInput from '@/Components/ui/FormInput.vue';
 import PhoneInput from '@/Components/ui/PhoneInput.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';

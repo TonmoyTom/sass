@@ -7,11 +7,14 @@ namespace App\Models;
 use App\Enums\UserStatus;
 use App\Enums\UserType;
 use App\Models\Concerns\HasFiles;
+use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use PragmaRX\Google2FA\Google2FA;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -24,11 +27,16 @@ use Spatie\Permission\Traits\HasRoles;
  */
 class User extends Authenticatable
 {
-    use HasApiTokens;     // For future mobile app
+    use Filterable;
+    use HasApiTokens;
+
+    // For future mobile app
     use HasFactory;
     use HasFiles;          // For avatar uploads (from our reusable trait)
-    use HasRoles;          // Spatie Permission
-    use Notifiable;        // For notifications
+    use HasRoles;
+
+    // Spatie Permission
+    use Notifiable;       // For notifications
     // use SoftDeletes;
 
     protected $connection = 'central';
@@ -46,14 +54,14 @@ class User extends Authenticatable
         'status',
         'last_login_at',
         'last_login_ip',
+        'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes',
     ];
 
     /**
@@ -188,9 +196,7 @@ class User extends Authenticatable
      */
     protected function getDefaultAvatarUrl(): string
     {
-        $name = urlencode($this->name);
-
-        return "https://ui-avatars.com/api/?name={$name}&background=6366f1&color=fff&size=200";
+        return asset('logo/default-avatar.png');
     }
 
     /**
@@ -228,6 +234,16 @@ class User extends Authenticatable
         };
     }
 
+    public function getTwoFactorPage(): string
+    {
+        return match ($this->user_type) {
+            UserType::SUPER_ADMIN => 'Auth/TwoFactor/Show',
+            UserType::SELLER => 'Auth/Seller/Show',
+            UserType::TENANT_OWNER => 'Auth/Tenant/Show',
+            UserType::STAFF => 'Auth/TwoFactor/Show',
+        };
+    }
+
     /**
      * Get tenant owner's first tenant dashboard.
      */
@@ -240,5 +256,43 @@ class User extends Authenticatable
         }
 
         return $tenant->url ?? '/';
+    }
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return ! is_null($this->two_factor_confirmed_at);
+    }
+
+    public function twoFactorQrCodeUrl(): string
+    {
+        $google2fa = new Google2FA;
+
+        return $google2fa->getQRCodeUrl(
+            config('app.name'),
+            $this->email,
+            decrypt($this->two_factor_secret)
+        );
+    }
+
+    public function generateRecoveryCodes(): array
+    {
+        $codes = collect(range(1, 8))->map(fn () => strtoupper(Str::random(10)))->all();
+
+        $this->forceFill([
+            'two_factor_recovery_codes' => encrypt(json_encode($codes)),
+        ])->save();
+
+        return $codes;
+    }
+
+    public function replaceRecoveryCode(string $code): void
+    {
+        $codes = json_decode(decrypt($this->two_factor_recovery_codes), true);
+
+        $codes = array_filter($codes, fn ($c) => $c !== $code);
+
+        $this->forceFill([
+            'two_factor_recovery_codes' => encrypt(json_encode(array_values($codes))),
+        ])->save();
     }
 }
