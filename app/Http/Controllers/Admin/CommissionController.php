@@ -60,6 +60,7 @@ class CommissionController extends Controller
                     'pending' => Commission::where('status', 'pending')->count(),
                     'approved' => Commission::where('status', 'approved')->count(),
                     'paid' => Commission::where('status', 'paid')->count(),
+                    'free' => Commission::where('status', 'free')->count(),
                 ],
                 'totals' => [
                     'pending' => (float) Commission::where('status', 'pending')->sum('amount'),

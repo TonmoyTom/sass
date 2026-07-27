@@ -52,6 +52,7 @@ class OrderController extends Controller
                     'all' => Sale::count(),
                     'completed' => Sale::where('status', 'completed')->count(),
                     'pending' => Sale::where('status', 'pending')->count(),
+                    'free' => Sale::where('is_free_renewal', 1)->count(),
                 ],
                 'totals' => [
                     'revenue' => (float) Sale::where('status', 'completed')->sum('amount'),

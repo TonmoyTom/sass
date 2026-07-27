@@ -14,7 +14,7 @@
             </div>
 
             <!-- totals -->
-            <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
                 <div
                     class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
                 >
@@ -61,6 +61,16 @@
                         class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400"
                     >
                         {{ counts.pending }}
+                    </p>
+                </div>
+                <div
+                    class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
+                >
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Free</p>
+                    <p
+                        class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400"
+                    >
+                        {{ counts.free }}
                     </p>
                 </div>
             </div>
