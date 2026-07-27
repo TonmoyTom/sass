@@ -8,6 +8,7 @@ use App\Models\CompanySetting;
 use App\Models\ModulePackage;
 use App\Models\Sale;
 use App\Models\TenantModule;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -130,11 +131,13 @@ class MyModulesController extends Controller
         ]);
     }
 
-    public function show($id): Response
+    public function show(string $tenant, $id): Response
     {
+
         $tenantId = tenant('id');
         $order = Sale::on('mysql')
             ->where('tenant_id', $tenantId)
+            ->where('id', $id)
             ->with(['module', 'tenant.owner.info', 'seller.user', 'tier', 'commission'])->first();
 
         return Inertia::render('Tenant/Domain/MyModules/Show', [
@@ -142,6 +145,7 @@ class MyModulesController extends Controller
                 'id' => $order->id,
                 'invoice_number' => $order->invoice_number,
                 'amount' => $order->amount,
+                'note' => $order->free_renewal_note,
                 'commission' => $order->commission_amount,
                 'admin_amount' => $order->admin_amount,
                 'sale_type' => $order->sale_type,
@@ -152,16 +156,21 @@ class MyModulesController extends Controller
                 'tenant_name' => $order->tenant?->name,
                 'tenant_email' => $order->tenant?->owner?->email,
                 'seller_name' => $order->seller?->user?->name,
+                'is_free_renewal' => $order->is_free_renewal,
+                'free_renewed_by_name' => $order?->free_renewed_by
+                  ? User::find($order->free_renewed_by)?->name
+                  : null,
             ],
         ]);
     }
 
-    public function invoice($id)
+    public function invoice(string $tenant, $id)
     {
 
         $companySetting = CompanySetting::first();
         $tenantId = tenant('id');
         $order = Sale::on('mysql')
+            ->where('id', $id)
             ->where('tenant_id', $tenantId)
             ->with(['module', 'tenant.owner.info', 'seller.user', 'tier', 'commission'])->first();
 
@@ -170,6 +179,11 @@ class MyModulesController extends Controller
                 'id' => $order->id,
                 'invoice_no' => 'INV-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT),
                 'invoice_number' => $order->invoice_number,
+                'note' => $order->free_renewal_note,
+                'is_free_renewal' => $order->is_free_renewal,
+                'free_renewed_by_name' => $order?->free_renewed_by
+                  ? User::find($order->free_renewed_by)?->name
+                  : null,
                 'commission' => $order->commission_amount,
                 'admin_amount' => $order->admin_amount,
                 'amount' => $order->amount,

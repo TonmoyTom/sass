@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\TenantController;
+use App\Http\Controllers\Admin\TenantModuleUsageController;
 use App\Http\Controllers\Admin\WithdrawRequestController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\CentralSitemapController;
@@ -255,7 +256,9 @@ Route::domain('myapp.test')->group(function () {
             Route::get('/settings/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
             Route::get('/payment-settings', [PaymentSettingController::class, 'index'])->name('admin.payment-settings.index');
             Route::patch('/payment-settings/{method}', [PaymentSettingController::class, 'update'])->name('admin.payment-settings.update');
-
+            Route::get('/tenant-modules', [TenantModuleUsageController::class, 'index'])->name('admin.tenant-modules.index');
+            Route::post('/tenant-modules/{tenantModule}/free-renew', [TenantModuleUsageController::class, 'freeRenew'])->name('admin.tenant-modules.free-renew');
+            Route::post('/tenant-modules/{tenantModule}/renew', [TenantModuleUsageController::class, 'renew'])->name('admin.tenant-modules.renew');
         });
 
     // ─────────────────────────────────────────────

@@ -133,6 +133,12 @@
                             >
                                 {{ order.status }}
                             </span>
+                            <span
+                                v-if="order.is_free_renewal"
+                                class="inline-block rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700"
+                            >
+                                Free
+                            </span>
                         </div>
                     </div>
 

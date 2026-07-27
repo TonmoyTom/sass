@@ -343,6 +343,11 @@ const rawMenuGroups = [
                         path: '/admin/modules',
                         permission: 'modules.view',
                     },
+                    {
+                        name: 'Purchase',
+                        path: '/admin/tenant-modules',
+                        permission: 'modules.view',
+                    },
                 ],
             },
             {

@@ -15,7 +15,7 @@ class Sale extends Model
     protected $fillable = [
         'tenant_id', 'seller_id', 'module_id', 'module_tier_id',
         'sale_type', 'amount', 'commission_amount', 'admin_amount',
-        'status', 'sold_at', 'invoice_number', 'payment_method', 'transaction_id',
+        'status', 'sold_at', 'invoice_number', 'payment_method', 'transaction_id', 'free_renewal_note', 'free_renewed_by', 'is_free_renewal',
     ];
 
     protected $casts = [
@@ -33,6 +33,11 @@ class Sale extends Model
     public function seller()
     {
         return $this->belongsTo(Seller::class);
+    }
+
+    public function free_renewed_by()
+    {
+        return $this->belongsTo(User::class, 'free_renewed_by');
     }
 
     public function module()

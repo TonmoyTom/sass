@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CompanySetting;
 use App\Models\Sale;
-use Faker\Provider\Company;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -81,6 +81,7 @@ class OrderController extends Controller
                 'id' => $order->id,
                 'invoice_number' => $order->invoice_number,
                 'amount' => $order->amount,
+                'note' => $order->free_renewal_note,
                 'commission' => $order->commission_amount,
                 'admin_amount' => $order->admin_amount,
                 'sale_type' => $order->sale_type,
@@ -91,6 +92,10 @@ class OrderController extends Controller
                 'tenant_name' => $order->tenant?->name,
                 'tenant_email' => $order->tenant?->owner?->email,
                 'seller_name' => $order->seller?->user?->name,
+                'is_free_renewal' => $order->is_free_renewal,
+                'free_renewed_by_name' => $order?->free_renewed_by
+                  ? User::find($order->free_renewed_by)?->name
+                  : null,
             ],
         ]);
     }
@@ -107,6 +112,7 @@ class OrderController extends Controller
                 'invoice_number' => $order->invoice_number,
                 'invoice_no' => 'INV-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT),
                 'amount' => $order->amount,
+                'note' => $order->free_renewal_note,
                 'commission' => $order->commission_amount,
                 'admin_amount' => $order->admin_amount,
                 'sale_type' => $order->sale_type,
@@ -116,6 +122,10 @@ class OrderController extends Controller
                 'tier_name' => $order->tier?->name,
                 'tenant_name' => $order->tenant?->name,
                 'tenant_email' => $order->tenant?->owner?->email,
+                'is_free_renewal' => $order->is_free_renewal,
+                'free_renewed_by_name' => $order?->free_renewed_by
+                  ? User::find($order->free_renewed_by)?->name
+                  : null,
                 'tenant_address' => [
                     'city' => $order->tenant?->owner?->info?->city,
                     'country' => $order->tenant?->owner?->info?->country,

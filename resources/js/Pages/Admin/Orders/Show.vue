@@ -228,6 +228,25 @@
                     </div>
                 </div>
             </section>
+            <section
+                v-if="order.is_free_renewal"
+                class="mt-5 rounded-2xl border border-purple-200 bg-purple-50 p-6 dark:border-purple-900/40 dark:bg-purple-900/10"
+            >
+                <h5
+                    class="mb-2 font-semibold text-purple-800 dark:text-purple-400"
+                >
+                    Free Renewal Note
+                </h5>
+                <p class="text-sm text-purple-700 dark:text-purple-300">
+                    {{ order.note ?? 'No Note' }}
+                </p>
+                <p
+                    v-if="order.free_renewed_by_name"
+                    class="mt-2 text-xs text-purple-600 dark:text-purple-400"
+                >
+                    Renewed by: {{ order.free_renewed_by_name }}
+                </p>
+            </section>
         </div>
     </AdminLayout>
 </template>
