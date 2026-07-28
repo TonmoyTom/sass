@@ -158,7 +158,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
 
     public function enabledModules(): array
     {
-        return TenantModule::on('mysql')   // ← central connection
+        return TenantModule::on('mysql')  
             ->where('tenant_id', $this->id)
             ->whereIn('status', ['active', 'purchased', 'trial'])
             ->where(function ($q) {
@@ -170,5 +170,6 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             ->filter()
             ->values()
             ->all();
+
     }
 }

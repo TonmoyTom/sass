@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
-
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
@@ -56,7 +57,7 @@ class RoleController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, string $tenant): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
@@ -64,8 +65,10 @@ class RoleController extends Controller
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $role = Role::create(['name' => $data['name'], 'guard_name' => 'web']);
+        $role = Role::create(['name' => $data['name'], 'guard_name' => 'tenant']);
         $role->syncPermissions($data['permissions'] ?? []);
+
+        $this->clearRoleRelatedCache($tenant);
 
         return redirect('/roles')->with('status', 'Role created');
     }
@@ -93,6 +96,8 @@ class RoleController extends Controller
         $role->update(['name' => $data['name']]);
         $role->syncPermissions($data['permissions'] ?? []);
 
+        $this->clearRoleRelatedCache($tenant);
+
         return redirect('/roles')->with('status', 'Role updated');
     }
 
@@ -104,7 +109,15 @@ class RoleController extends Controller
 
         $role->delete();
 
+        $this->clearRoleRelatedCache($tenant);
+
         return redirect('/roles')->with('status', 'Role deleted');
+    }
+
+    private function clearRoleRelatedCache(string $tenant): void
+    {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        Cache::forget("share:workspace:{$tenant}");
     }
 
     private function groupedPermissions(): array
@@ -130,7 +143,7 @@ class RoleController extends Controller
                 'label' => $this->humanize($group),
                 'permissions' => $perms,
             ])
-            ->sortBy('label') // alphabetical, dynamic — kono hardcoded order lagbe na
+            ->sortBy('label')
             ->values()
             ->all();
     }

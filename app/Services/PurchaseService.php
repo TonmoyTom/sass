@@ -11,7 +11,11 @@ use App\Models\Tenant;
 use App\Models\TenantModule;
 use App\Models\WalletTransaction;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PurchaseService
 {
@@ -19,12 +23,6 @@ class PurchaseService
         protected ProrationService $proration
     ) {}
 
-    /**
-     * Cart checkout — sob purchase logic ek transaction-e.
-     *
-     * @param  ?string  $referralCode  seller code (commission-er jonno)
-     * @return array created sales + commission info
-     */
     public function checkout(
         Tenant $tenant,
         Cart $cart,
@@ -38,8 +36,6 @@ class PurchaseService
             throw new \RuntimeException('Cart is empty');
         }
 
-        // referral resolve: notun code thakle sheta, na thakle tenant-er existing referrer
-        // (first-touch attribution — recurring commission original seller-i pabe)
         $seller = null;
 
         if ($referralCode) {
@@ -48,16 +44,16 @@ class PurchaseService
                 ->first();
         }
 
-        return DB::transaction(function () use ($paymentMethod, $tenant, $cart, $seller, $transactionId) {
+        $result = DB::transaction(function () use ($paymentMethod, $tenant, $cart, $seller, $transactionId) {
             $sales = [];
             $totalCommission = 0;
             $period = now()->format('Y-m');
+            $purchasedModuleAliases = [];   // ← notun, permission-sync-er jonno track kori
 
             foreach ($cart->items as $item) {
                 $fullPrice = (float) $item->price;
                 $isOneTime = $item->billing_cycle === 'one_time';
 
-                // already owned (upgrade/change) hole proration
                 $existing = TenantModule::where('tenant_id', $tenant->id)
                     ->where('module_id', $item->module_id)
                     ->first();
@@ -67,17 +63,15 @@ class PurchaseService
 
                 if ($existing && $existing->status === 'active') {
                     $p = $this->proration->calculate($existing, $fullPrice, $item->billing_cycle);
-                    $amount = $p['charge'];             // baki value baad — kom charge
-                    $expiresAt = $p['new_expires_at'];  // ekhon theke notun cycle
+                    $amount = $p['charge'];
+                    $expiresAt = $p['new_expires_at'];
                 }
 
-                // commission — SELLER-er rate, prorated amount-er upor
                 $commissionAmount = $seller
                     ? round($amount * ($seller->commission_rate / 100), 2)
                     : 0;
                 $adminAmount = $amount - $commissionAmount;
 
-                // 1. sale create
                 $sale = Sale::create([
                     'tenant_id' => $tenant->id,
                     'seller_id' => $seller?->id,
@@ -89,11 +83,10 @@ class PurchaseService
                     'admin_amount' => $adminAmount,
                     'status' => 'completed',
                     'sold_at' => now(),
-                    'payment_method' => $paymentMethod,      
+                    'payment_method' => $paymentMethod,
                     'transaction_id' => $transactionId,
                 ]);
 
-                // 2. commission create (seller thakle)
                 if ($seller && $commissionAmount > 0) {
                     Commission::create([
                         'seller_id' => $seller->id,
@@ -101,7 +94,7 @@ class PurchaseService
                         'amount' => $commissionAmount,
                         'rate' => $seller->commission_rate,
                         'commission_type' => $isOneTime ? 'one_time' : 'recurring',
-                        'period' => $isOneTime ? null : $period,   // recurring cron duplicate guard
+                        'period' => $isOneTime ? null : $period,
                         'status' => 'pending',
                         'hold_until' => now()->addDays(30),
                     ]);
@@ -109,7 +102,6 @@ class PurchaseService
                     $totalCommission += $commissionAmount;
                 }
 
-                // 3. tenant_modules — enable / update (upgrade hole update)
                 TenantModule::updateOrCreate(
                     ['tenant_id' => $tenant->id, 'module_id' => $item->module_id],
                     [
@@ -120,16 +112,20 @@ class PurchaseService
                         'activated_at' => now(),
                         'purchased_at' => now(),
                         'expires_at' => $expiresAt,
-                        'price_paid' => $amount,        // actual paid (prorated)
+                        'price_paid' => $amount,
                         'billing_cycle' => $item->billing_cycle,
                         'referred_by' => $seller?->id,
                     ]
                 );
 
                 $sales[] = $sale;
+
+                // module-er alias/slug track kori — permission sync-er jonno
+                if ($item->module?->alias) {
+                    $purchasedModuleAliases[] = $item->module->alias;
+                }
             }
 
-            // 4. seller wallet + stats update (commission thakle)
             if ($seller && $totalCommission > 0) {
                 $wallet = $seller->wallet()->lockForUpdate()->first();
 
@@ -154,7 +150,6 @@ class PurchaseService
                 $seller->increment('total_sales', count($sales));
                 $seller->increment('total_earned', $totalCommission);
 
-                // referral conversion mark — SHUDHU jodi age set na thake (first-touch)
                 if (! $tenant->referred_by) {
                     $tenant->update(['referred_by' => $seller->id]);
                 }
@@ -168,7 +163,6 @@ class PurchaseService
                 );
             }
 
-            // 5. cart clear
             $cart->items()->delete();
 
             return [
@@ -176,13 +170,101 @@ class PurchaseService
                 'seller' => $seller,
                 'total_commission' => $totalCommission,
                 'invoice_numbers' => collect($sales)->pluck('invoice_number')->all(),
+                'purchased_module_aliases' => $purchasedModuleAliases,
             ];
         });
+
+        $this->syncModulePermissions($tenant, $result['purchased_module_aliases']);
+
+        return $result;
     }
 
     /**
-     * Billing cycle theke expiry date.
+     * Purchase kora module-er jonno permission create + tenant owner-er role-e assign koro.
      */
+    protected function syncModulePermissions(Tenant $tenant, array $moduleAliases): void
+    {
+        if (empty($moduleAliases)) {
+            return;
+        }
+        $permissionsByPrefix = [
+            'ecommerce' => [
+                'ecommerce.view',
+            ],
+            'pos' => [
+                'pos.view',
+            ],
+            'lms' => [
+                'lms.view',
+            ],
+        ];
+
+        $allPermissionNames = [];
+
+        foreach ($moduleAliases as $alias) {
+            $prefix = $this->permissionPrefix($alias);
+
+            if ($prefix && isset($permissionsByPrefix[$prefix])) {
+                $allPermissionNames = array_merge($allPermissionNames, $permissionsByPrefix[$prefix]);
+            }
+        }
+
+        if (empty($allPermissionNames)) {
+            return;
+        }
+
+        $allPermissionNames = array_unique($allPermissionNames);
+        $wasAlreadyInitialized = tenancy()->initialized;
+        $previousTenant = $wasAlreadyInitialized ? tenant() : null;
+
+        try {
+            // shudhu jodi already ei tenant-e active na thaki, tobei initialize kori
+            if (! $wasAlreadyInitialized || tenant('id') !== $tenant->id) {
+                tenancy()->initialize($tenant);
+            }
+
+            $createdPermissions = [];
+
+            foreach ($allPermissionNames as $permName) {
+                $createdPermissions[] = Permission::firstOrCreate([
+                    'name' => $permName,
+                    'guard_name' => 'tenant',
+                ]);
+            }
+
+            $ownerRole = Role::where('guard_name', 'tenant')
+                ->whereIn('name', ['Super admin', 'Admin', 'Owner'])
+                ->first();
+
+            if ($ownerRole) {
+                $ownerRole->givePermissionTo($createdPermissions);
+            }
+
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            Cache::forget("share:workspace:{$tenant->id}");
+        } catch (\Throwable $e) {
+            report($e); // permission sync fail hole o purchase flow break na hok
+        } finally {
+            // amra nijei initialize korle, amra e cleanup kori
+            if (! $wasAlreadyInitialized) {
+                tenancy()->end();
+            } elseif ($previousTenant && tenant('id') !== $previousTenant->id) {
+                tenancy()->initialize($previousTenant);
+            }
+        }
+    }
+
+    protected function permissionPrefix(string $moduleAlias): ?string
+    {
+        return match ($moduleAlias) {
+            'eccomarce', 'e-commerce', 'ecommerce' => 'ecommerce',
+            'pos' => 'pos',
+            'learning-system-management' => 'lms',
+            default => null,
+        };
+    }
+
     protected function cycleExpiry(string $cycle): ?Carbon
     {
         return match ($cycle) {

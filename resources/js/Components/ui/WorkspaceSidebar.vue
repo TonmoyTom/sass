@@ -128,11 +128,11 @@
                     <!-- module groups (click → drill down) -->
                     <button
                         v-for="mod in moduleGroups"
-                        :key="mod.key"
+                        :key="mod.slug"
                         type="button"
                         class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.03]"
                         :class="collapsed ? 'lg:justify-center' : ''"
-                        @click="activeModule = mod.key"
+                        @click="activeModule = mod.slug"
                     >
                         <span
                             class="flex h-5 w-5 flex-shrink-0 items-center justify-center"
@@ -185,6 +185,7 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Book,
     Box,
     ChevronLeft,
     ChevronRight,
@@ -217,9 +218,16 @@ const enabledModules = computed(
     () => page.props.workspace?.enabled_modules ?? [],
 );
 
-const activeModule = ref(null);
+// user-er sob permission — HandleInertiaRequests middleware theke ashe
+const userPermissions = computed(() => page.props.auth?.permissions ?? []);
 
-// kon base item er dropdown open ache
+// permission na dile (undefined/null) always TRUE dhori — mane public/always-visible item
+const hasPermission = (permission) => {
+    if (!permission) return true;
+    return userPermissions.value.includes(permission);
+};
+
+const activeModule = ref(null);
 const openSubmenu = ref(null);
 
 const isActive = (href) => {
@@ -227,7 +235,6 @@ const isActive = (href) => {
     return current === href || current.startsWith(href + '/');
 };
 
-// base item er kono sub-item active kina check
 const isSubmenuActive = (item) =>
     item.subItems?.some((sub) => isActive(sub.href)) ?? false;
 
@@ -235,21 +242,30 @@ const toggleSubmenu = (key) => {
     openSubmenu.value = openSubmenu.value === key ? null : key;
 };
 
-// base (always visible) — jegulo te subItems ache segulo dropdown hobe
-const baseItems = [
+// base items — proti item/subItem-e 'permission' key add kora holo
+const allBaseItems = [
     {
         key: 'dashboard',
         href: '/dashboard',
         label: 'Dashboard',
         icon: 'dashboard',
+        // permission nai — shobai dekhbe
     },
     {
         key: 'modules',
         label: 'Modules',
         icon: 'user',
         subItems: [
-            { href: '/my-modules', label: 'Lists' },
-            { href: '/my-modules/history', label: 'History' },
+            {
+                href: '/my-modules',
+                label: 'Lists',
+                permission: 'my-modules.view',
+            },
+            {
+                href: '/my-modules/history',
+                label: 'History',
+                permission: 'my-modules.view',
+            },
         ],
     },
     {
@@ -257,8 +273,12 @@ const baseItems = [
         label: 'Users',
         icon: 'user',
         subItems: [
-            { href: '/users', label: 'Lists' },
-            { href: '/users/create', label: 'Create User' },
+            { href: '/users', label: 'Lists', permission: 'users.view' },
+            {
+                href: '/users/create',
+                label: 'Create User',
+                permission: 'users.create',
+            },
         ],
     },
     {
@@ -266,9 +286,17 @@ const baseItems = [
         label: 'Roles',
         icon: 'shield',
         subItems: [
-            { href: '/roles', label: 'All Roles' },
-            { href: '/roles/create', label: 'Add Role' },
-            { href: '/permissions', label: 'Permissions' },
+            { href: '/roles', label: 'All Roles', permission: 'roles.view' },
+            {
+                href: '/roles/create',
+                label: 'Add Role',
+                permission: 'roles.create',
+            },
+            {
+                href: '/permissions',
+                label: 'Permissions',
+                permission: 'roles.view',
+            },
         ],
     },
     {
@@ -276,19 +304,50 @@ const baseItems = [
         label: 'Settings',
         icon: 'settings',
         subItems: [
-            { href: '/settings', label: 'General' },
-            { href: '/settings/seo', label: 'Seo' },
-            { href: '/settings/payment', label: 'Payment' },
-            { href: '/settings/two-factor', label: 'Two Factor' },
+            {
+                href: '/settings',
+                label: 'General',
+                permission: 'settings.view',
+            },
+            {
+                href: '/settings/seo',
+                label: 'Seo',
+                permission: 'settings.view',
+            },
+            {
+                href: '/settings/payment',
+                label: 'Payment',
+                permission: 'settings.view',
+            },
+            { href: '/settings/two-factor', label: 'Two Factor' }, // shobai nijer 2FA change korte pare
         ],
     },
 ];
 
-// URL match hole related dropdown auto open thakbe
+// filtered baseItems — subItems-er moddhe permission-check kore,
+// jei item-e kono subItem access-jogyo nai, oi parent item-o hide hoye jabe
+const baseItems = computed(() =>
+    allBaseItems
+        .map((item) => {
+            if (!item.subItems) {
+                return hasPermission(item.permission) ? item : null;
+            }
+
+            const visibleSubItems = item.subItems.filter((sub) =>
+                hasPermission(sub.permission),
+            );
+
+            if (visibleSubItems.length === 0) return null;
+
+            return { ...item, subItems: visibleSubItems };
+        })
+        .filter(Boolean),
+);
+
 watch(
     () => page.url,
     (url) => {
-        const match = baseItems.find((item) =>
+        const match = baseItems.value.find((item) =>
             item.subItems?.some(
                 (sub) => url === sub.href || url.startsWith(sub.href + '/'),
             ),
@@ -298,11 +357,15 @@ watch(
     { immediate: true },
 );
 
+/**
+ * Module group definitions — object KEY-i module slug.
+ * proti module group-e 'permission' key add kora holo (optional).
+ */
 const allModuleGroups = {
     eccomarce: {
-        key: 'e-ccomarce',
         label: 'E-commerce',
         icon: 'cart',
+        // permission: 'ecommerce.view',
         items: [
             {
                 href: '/ecommerce/dashboard',
@@ -314,25 +377,51 @@ const allModuleGroups = {
         ],
     },
     pos: {
-        key: 'pos',
         label: 'POS',
         icon: 'register',
+        // permission: 'pos.view',
         items: [
             { href: '/pos/dashboard', label: 'Dashboard', icon: 'dashboard' },
             { href: '/pos/sales', label: 'Sales', icon: 'cart' },
         ],
     },
+    'learning-system-management': {
+        label: 'LMS',
+        icon: 'book',
+        // permission: 'lms.view',
+        items: [
+            { href: '/lms/dashboard', label: 'Dashboard', icon: 'dashboard' },
+            { href: '/lms/courses', label: 'Courses', icon: 'book' },
+            { href: '/lms/enrollments', label: 'Enrollments', icon: 'user' },
+            { href: '/lms/quizzes', label: 'Quizzes', icon: 'box' },
+            { href: '/lms/assignments', label: 'Assignments', icon: 'bag' },
+        ],
+    },
 };
 
+// enabled_modules + permission — DUTOI check hobe
 const moduleGroups = computed(() =>
-    enabledModules.value.map((m) => allModuleGroups[m]).filter(Boolean),
+    enabledModules.value
+        .filter(
+            (slug) =>
+                allModuleGroups[slug] &&
+                hasPermission(allModuleGroups[slug].permission),
+        )
+        .map((slug) => ({ ...allModuleGroups[slug], slug })),
 );
 
-const currentModule = computed(
-    () => allModuleGroups[activeModule.value] ?? { label: '', items: [] },
-);
+const currentModule = computed(() => {
+    const mod = allModuleGroups[activeModule.value];
+    if (!mod) return { label: '', items: [] };
+
+    return {
+        ...mod,
+        items: mod.items.filter((item) => hasPermission(item.permission)),
+    };
+});
 
 const companyLogo = computed(() => page.props.workspace?.logo_url ?? null);
+
 watch(
     () => page.url,
     (url) => {
@@ -346,7 +435,6 @@ watch(
     { immediate: true },
 );
 
-// icon key -> lucide-vue-next component
 const icons = {
     dashboard: LayoutDashboard,
     user: User,
@@ -356,5 +444,6 @@ const icons = {
     bag: ShoppingBag,
     cart: ShoppingCart,
     register: Store,
+    book: Book,
 };
 </script>
