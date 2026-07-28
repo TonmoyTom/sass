@@ -42,11 +42,7 @@ class PurchaseService
         // (first-touch attribution — recurring commission original seller-i pabe)
         $seller = null;
 
-        if ($tenant->referred_by) {
-            $seller = Seller::where('id', $tenant->referred_by)
-                ->where('status', 'active')
-                ->first();
-        } elseif ($referralCode) {
+        if ($referralCode) {
             $seller = Seller::where('referral_code', $referralCode)
                 ->where('status', 'active')
                 ->first();
@@ -126,6 +122,7 @@ class PurchaseService
                         'expires_at' => $expiresAt,
                         'price_paid' => $amount,        // actual paid (prorated)
                         'billing_cycle' => $item->billing_cycle,
+                        'referred_by' => $seller?->id,
                     ]
                 );
 

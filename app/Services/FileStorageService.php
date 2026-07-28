@@ -64,7 +64,8 @@ class FileStorageService
     public function uploadImage(
         UploadedFile $file,
         string $directory,
-        array $options = []
+        array $options = [],
+        ?string $disk = null
     ): string {
         // Default options
         $options = array_merge([

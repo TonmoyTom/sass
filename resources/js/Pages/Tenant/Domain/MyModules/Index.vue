@@ -1,13 +1,9 @@
 <template>
     <WorkspaceLayout title="My Modules">
         <div class="mx-auto">
-            <div
-                class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-            >
+            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h3
-                        class="text-xl font-semibold text-gray-800 dark:text-white/90"
-                    >
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white/90">
                         My Modules
                     </h3>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -24,53 +20,21 @@
 
             <!-- Stats -->
             <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <div
-                    class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
-                >
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                        Total Modules
-                    </p>
-                    <p
-                        class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90"
-                    >
-                        {{ modules.length }}
-                    </p>
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Total Modules</p>
+                    <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">{{ modules.length }}</p>
                 </div>
-                <div
-                    class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
-                >
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                        Active
-                    </p>
-                    <p
-                        class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400"
-                    >
-                        {{ stats.active }}
-                    </p>
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Active</p>
+                    <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.active }}</p>
                 </div>
-                <div
-                    class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
-                >
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                        Expiring Soon
-                    </p>
-                    <p
-                        class="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400"
-                    >
-                        {{ stats.expiringSoon }}
-                    </p>
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Expiring Soon</p>
+                    <p class="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.expiringSoon }}</p>
                 </div>
-                <div
-                    class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
-                >
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                        Expired
-                    </p>
-                    <p
-                        class="mt-1 text-2xl font-bold text-red-600 dark:text-red-400"
-                    >
-                        {{ stats.expired }}
-                    </p>
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Expired</p>
+                    <p class="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">{{ stats.expired }}</p>
                 </div>
             </div>
 
@@ -111,9 +75,7 @@
                     class="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
                 >
                     <div class="mb-3 flex items-start justify-between">
-                        <h4
-                            class="font-semibold text-gray-800 dark:text-white/90"
-                        >
+                        <h4 class="font-semibold text-gray-800 dark:text-white/90">
                             {{ m.module_name }}
                         </h4>
                         <span
@@ -124,36 +86,93 @@
                         </span>
                     </div>
 
-                    <p
-                        v-if="m.tier_name"
-                        class="mb-2 text-sm text-gray-500 dark:text-gray-400"
-                    >
+                    <p v-if="m.tier_name" class="mb-2 text-sm text-gray-500 dark:text-gray-400">
                         Tier: {{ m.tier_name }}
                     </p>
 
-                    <div
-                        class="mb-4 space-y-1 text-sm text-gray-500 dark:text-gray-400"
-                    >
+                    <div class="mb-4 space-y-1 text-sm text-gray-500 dark:text-gray-400">
                         <p>Purchased: {{ m.purchased_at }}</p>
                         <p v-if="m.expires_at">
-                            {{
-                                m.access_type === 'lifetime'
-                                    ? 'Lifetime access'
-                                    : `Expires: ${m.expires_at}`
-                            }}
+                            {{ m.access_type === 'lifetime' ? 'Lifetime access' : `Expires: ${m.expires_at}` }}
                         </p>
                         <p class="font-medium text-gray-800 dark:text-white/90">
                             ৳{{ money(m.price_paid) }} / {{ m.billing_cycle }}
                         </p>
                     </div>
 
+                    <!-- Referral info -->
+                    <div class="mb-4">
+                        <!-- View mode — referral thakle -->
+                        <div
+                            v-if="m.referred_by && editingReferral !== m.id"
+                            class="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs dark:bg-white/[0.03]"
+                        >
+                            <div class="min-w-0">
+                                <p class="truncate font-medium text-gray-700 dark:text-gray-300">
+                                    Referred by {{ m.referred_by }}
+                                </p>
+                                <p v-if="m.referred_code" class="truncate font-mono text-gray-400">
+                                    Code: {{ m.referred_code }}
+                                </p>
+                            </div>
+                            <button
+                                @click="startEditReferral(m)"
+                                class="text-brand-500 shrink-0 hover:underline"
+                            >
+                                Edit
+                            </button>
+                        </div>
+
+                        <!-- View mode — referral na thakle -->
+                        <button
+                            v-else-if="!m.referred_by && editingReferral !== m.id"
+                            @click="startEditReferral(m)"
+                            class="text-brand-500 text-xs hover:underline"
+                        >
+                            + Add referral code
+                        </button>
+
+                        <!-- Edit mode -->
+                        <div
+                            v-if="editingReferral === m.id"
+                            class="space-y-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                        >
+                            <select
+                                v-model="referralForm.referral_code"
+                                class="h-9 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-xs dark:border-gray-700 dark:text-white/90"
+                            >
+                                <option value="">— No referral (remove) —</option>
+                                <option
+                                    v-for="s in sellers"
+                                    :key="s.id"
+                                    :value="s.referral_code"
+                                >
+                                    {{ s.name }} ({{ s.referral_code }})
+                                </option>
+                            </select>
+                            <div class="flex gap-2">
+                                <button
+                                    @click="saveReferral(m)"
+                                    :disabled="referralForm.processing"
+                                    class="bg-brand-500 hover:bg-brand-600 flex-1 rounded-lg py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                                >
+                                    Save
+                                </button>
+                                <button
+                                    @click="cancelEditReferral"
+                                    class="flex-1 rounded-lg border border-gray-300 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div
                         v-if="m.is_expiring_soon && !m.is_expired"
                         class="mt-auto space-y-2"
                     >
-                        <div
-                            class="rounded-lg bg-yellow-50 p-3 text-xs text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400"
-                        >
+                        <div class="rounded-lg bg-yellow-50 p-3 text-xs text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
                             ⚠ Expiring soon — renewal upcoming
                         </div>
                         <button
@@ -161,17 +180,11 @@
                             :disabled="renewingId === m.id"
                             class="bg-brand-500 hover:bg-brand-600 w-full rounded-lg py-2 text-sm font-semibold text-white disabled:opacity-50"
                         >
-                            {{
-                                renewingId === m.id
-                                    ? 'Processing...'
-                                    : 'Renew Now'
-                            }}
+                            {{ renewingId === m.id ? 'Processing...' : 'Renew Now' }}
                         </button>
                     </div>
                     <div v-else-if="m.is_expired" class="mt-auto space-y-2">
-                        <div
-                            class="rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                        >
+                        <div class="rounded-lg bg-red-50 p-3 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-400">
                             This module has expired.
                         </div>
                         <button
@@ -179,11 +192,7 @@
                             :disabled="renewingId === m.id"
                             class="bg-brand-500 hover:bg-brand-600 w-full rounded-lg py-2 text-sm font-semibold text-white disabled:opacity-50"
                         >
-                            {{
-                                renewingId === m.id
-                                    ? 'Processing...'
-                                    : 'Renew Now'
-                            }}
+                            {{ renewingId === m.id ? 'Processing...' : 'Renew Now' }}
                         </button>
                     </div>
                 </div>
@@ -197,54 +206,35 @@
             </div>
 
             <div v-if="availableModules.length" class="mt-10">
-                <h4
-                    class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90"
-                >
+                <h4 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">
                     Available Modules
                 </h4>
                 <p class="mb-5 text-sm text-gray-500 dark:text-gray-400">
                     Modules you haven't purchased yet.
                 </p>
 
-                <div
-                    class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
-                >
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                     <div
                         v-for="m in availableModules"
                         :key="m.id"
                         class="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
                     >
                         <div class="mb-3 flex items-start justify-between">
-                            <h5
-                                class="font-semibold text-gray-800 dark:text-white/90"
-                            >
+                            <h5 class="font-semibold text-gray-800 dark:text-white/90">
                                 {{ m.name }}
                             </h5>
-                            <span
-                                class="text-xs text-gray-500 capitalize dark:text-gray-400"
-                                >{{ m.category }}</span
-                            >
+                            <span class="text-xs text-gray-500 capitalize dark:text-gray-400">{{ m.category }}</span>
                         </div>
 
-                        <p
-                            class="mb-4 flex-1 text-sm text-gray-600 dark:text-gray-400"
-                        >
+                        <p class="mb-4 flex-1 text-sm text-gray-600 dark:text-gray-400">
                             {{ m.description || 'No description.' }}
                         </p>
 
-                        <div
-                            class="mb-4 text-sm text-gray-500 dark:text-gray-400"
-                        >
-                            <span
-                                class="font-medium text-gray-800 dark:text-white/90"
-                            >
+                        <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                            <span class="font-medium text-gray-800 dark:text-white/90">
                                 ৳{{ money(m.starting_price) }}
                             </span>
-                            {{
-                                m.pricing_type === 'one_time'
-                                    ? ''
-                                    : `theke shuru · ${m.tiers_count} tier`
-                            }}
+                            {{ m.pricing_type === 'one_time' ? '' : `theke shuru · ${m.tiers_count} tier` }}
                         </div>
                         <a
                             :href="centralModuleUrl(m.alias)"
@@ -261,17 +251,20 @@
 
 <script setup>
 import WorkspaceLayout from '@/Layouts/WorkspaceLayout.vue';
-import { Link, router , usePage } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const props = defineProps({
     modules: { type: Array, default: () => [] },
     availableModules: { type: Array, default: () => [] },
+    sellers: { type: Array, default: () => [] },
 });
 
 const search = ref('');
 const statusFilter = ref('');
 const renewingId = ref(null);
+const editingReferral = ref(null);
+const referralForm = useForm({ referral_code: '' });
 
 const money = (val) =>
     Number(val ?? 0).toLocaleString('en-BD', {
@@ -280,19 +273,14 @@ const money = (val) =>
     });
 
 const statusClass = (m) => {
-    if (m.is_expired)
-        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-    if (m.status === 'active')
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+    if (m.is_expired) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+    if (m.status === 'active') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
     return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300';
 };
 
 const stats = computed(() => ({
-    active: props.modules.filter((m) => m.status === 'active' && !m.is_expired)
-        .length,
-    expiringSoon: props.modules.filter(
-        (m) => m.is_expiring_soon && !m.is_expired,
-    ).length,
+    active: props.modules.filter((m) => m.status === 'active' && !m.is_expired).length,
+    expiringSoon: props.modules.filter((m) => m.is_expiring_soon && !m.is_expired).length,
     expired: props.modules.filter((m) => m.is_expired).length,
 }));
 
@@ -305,12 +293,8 @@ const filteredModules = computed(() => {
         const matchesStatus =
             !statusFilter.value ||
             (statusFilter.value === 'expired' && m.is_expired) ||
-            (statusFilter.value === 'expiring_soon' &&
-                m.is_expiring_soon &&
-                !m.is_expired) ||
-            (statusFilter.value === 'active' &&
-                m.status === 'active' &&
-                !m.is_expired);
+            (statusFilter.value === 'expiring_soon' && m.is_expiring_soon && !m.is_expired) ||
+            (statusFilter.value === 'active' && m.status === 'active' && !m.is_expired);
 
         return matchesSearch && matchesStatus;
     });
@@ -336,5 +320,22 @@ const renewModule = (m) => {
 const centralModuleUrl = (alias) => {
     const centralDomain = usePage().props.centralDomain ?? 'myapp.test';
     return `${window.location.protocol}//${centralDomain}/modules/${alias}`;
+};
+
+const startEditReferral = (m) => {
+    editingReferral.value = m.id;
+    referralForm.referral_code = m.referred_code ?? '';
+};
+
+const cancelEditReferral = () => {
+    editingReferral.value = null;
+    referralForm.reset();
+};
+
+const saveReferral = (m) => {
+    referralForm.post(`/my-modules/${m.id}/referral`, {
+        preserveScroll: true,
+        onSuccess: () => (editingReferral.value = null),
+    });
 };
 </script>

@@ -54,10 +54,10 @@ class ProcessSubscriptionRenewal implements ShouldQueue
 
         $period = now()->format('Y-m');
 
-        // free renewal-eo seller resolve koro (referral track korar jonno), commission amount 0 hobe
-        $seller = $tenant->referred_by
+        
+        $seller = $tm->referred_by
             ? Seller::with('user', 'wallet')
-                ->where('id', $tenant->referred_by)
+                ->where('id', $tm->referred_by)
                 ->where('status', 'active')
                 ->first()
             : null;

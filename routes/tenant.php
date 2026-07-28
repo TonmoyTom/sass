@@ -150,6 +150,7 @@ Route::domain('{tenant}.myapp.test')->group(function () {
             Route::get('/my-modules/history', [MyModulesController::class, 'purchaseHistory'])->name('tenant.my-modules.history');
             Route::get('/my-modules/{id}', [MyModulesController::class, 'show'])->name('tenant.my-modules.show');
             Route::get('/my-modules/{id}/invoice', [MyModulesController::class, 'invoice'])->name('tenant.my-modules.invoice');
+            Route::post('/my-modules/{tenantModuleId}/referral', [MyModulesController::class, 'updateReferral'])->name('tenant.my-modules.update-referral');
 
             Route::post('/my-modules/{tenantModuleId}/renew', [MyModulesController::class, 'renew'])->name('tenant.my-modules.renew');
 

@@ -63,6 +63,7 @@
                     { key: 'price', label: 'Price', sortable: true },
                     { key: 'status', label: 'Status' },
                     { key: 'expires', label: 'Expires', sortable: true },
+                    { key: 'referred_by', label: 'Referred by' },
                     { key: 'actions', label: 'Action' },
                 ]"
             >
@@ -141,6 +142,17 @@
                         class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
                     >
                         {{ u.expires_at ?? '— (lifetime)' }}
+                    </td>
+
+                    <td
+                        class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400"
+                    >
+                        <p class="font-medium text-gray-800 dark:text-white/90">
+                            {{ u.referred_by }}
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ u.referred_by_email }}
+                        </p>
                     </td>
                     <td class="px-4 py-3">
                         <button

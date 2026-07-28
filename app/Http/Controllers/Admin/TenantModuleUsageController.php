@@ -16,7 +16,7 @@ class TenantModuleUsageController extends Controller
     public function index(Request $request): Response
     {
         $usage = TenantModule::query()
-            ->with(['tenant.owner', 'module', 'tier'])
+            ->with(['tenant.owner', 'module', 'tier', 'referredBy.user'])
             ->filterAndCache(
                 $request,
                 searchable: ['tenant.name', 'module.name'],
@@ -30,6 +30,8 @@ class TenantModuleUsageController extends Controller
                     'tenant_owner_email' => $tm->tenant?->owner?->email,
                     'module_name' => $tm->module?->name ?? '—',
                     'tier_name' => $tm->tier?->name,
+                    'referred_by' => $tm->referredBy?->user?->name,
+                    'referred_by_email' => $tm->referredBy?->user?->email,
                     'status' => $tm->status,
                     'access_type' => $tm->access_type,
                     'billing_cycle' => $tm->billing_cycle,

@@ -7,6 +7,7 @@ use App\Jobs\ProcessSubscriptionRenewal;
 use App\Models\CompanySetting;
 use App\Models\ModulePackage;
 use App\Models\Sale;
+use App\Models\Seller;
 use App\Models\TenantModule;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +35,7 @@ class MyModulesController extends Controller
 
         $modules = TenantModule::on('mysql')
             ->where('tenant_id', $tenantId)
-            ->with(['module', 'tier'])
+            ->with(['module', 'tier', 'referredBy.user'])
             ->orderByDesc('purchased_at')
             ->get()
             ->map(fn ($tm) => [
@@ -42,6 +43,9 @@ class MyModulesController extends Controller
                 'module_name' => $tm->module?->name ?? '—',
                 'module_icon' => $tm->module?->icon,
                 'tier_name' => $tm->tier?->name,
+                'referred_by' => $tm->referredBy?->user?->name,
+                'referred_code' => $tm->referredBy?->referral_code,
+                'referred_by_email' => $tm->referredBy?->user?->email,
                 'status' => $tm->status,
                 'access_type' => $tm->access_type,
                 'billing_cycle' => $tm->billing_cycle,
@@ -71,9 +75,26 @@ class MyModulesController extends Controller
                 'tiers_count' => $module->tiers->count(),
             ]);
 
+        $sellers = Cache::store('redis')
+            ->tags(['table:sellers'])
+            ->remember('active_sellers_list', 300, function () {
+                return Seller::on('mysql')
+                    ->with('user')
+                    ->where('status', 'active')
+                    ->get()
+                    ->map(fn ($s) => [
+                        'id' => $s->id,
+                        'name' => $s->user?->name,
+                        'referral_code' => $s->referral_code,
+                    ])
+                    ->values()
+                    ->all();
+            });
+
         return Inertia::render('Tenant/Domain/MyModules/Index', [
             'modules' => $modules,
             'availableModules' => $availableModules,
+            'sellers' => $sellers,
         ]);
     }
 
@@ -235,5 +256,46 @@ class MyModulesController extends Controller
             ->flush();
 
         return back()->with('status', 'Your module has been renewed successfully.');
+    }
+
+    public function updateReferral(Request $request, string $tenant, int $tenantModuleId): RedirectResponse
+    {
+        $tenantId = tenant('id');
+
+        $data = $request->validate([
+            'referral_code' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $tm = TenantModule::on('mysql')
+            ->where('id', $tenantModuleId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+
+        if (! $tm) {
+            return back()->with('error', 'Module not found.');
+        }
+
+        if (empty($data['referral_code'])) {
+            $tm->update(['referred_by' => null]);
+
+            Cache::store('redis')->tags(['table:'.$tenantId.':tenant_modules'])->flush();
+
+            return back()->with('status', 'Referral removed successfully.');
+        }
+
+        $seller = Seller::on('mysql')
+            ->where('referral_code', $data['referral_code'])
+            ->where('status', 'active')
+            ->first();
+
+        if (! $seller) {
+            return back()->with('error', 'Invalid or inactive referral code.');
+        }
+
+        $tm->update(['referred_by' => $seller->id]);
+
+        Cache::store('redis')->tags(['table:'.$tenantId.':tenant_modules'])->flush();
+
+        return back()->with('status', "Referral updated to {$seller->referral_code} successfully.");
     }
 }

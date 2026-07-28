@@ -15,7 +15,7 @@ class TenantModule extends Model
         'tenant_id', 'module_id', 'module_tier_id',
         'status', 'access_type', 'limits',
         'activated_at', 'purchased_at', 'expires_at',
-        'price_paid', 'billing_cycle',
+        'price_paid', 'billing_cycle', 'referred_by',
     ];
 
     protected $casts = [
@@ -44,5 +44,10 @@ class TenantModule extends Model
     public function isExpired(): bool
     {
         return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    public function referredBy()
+    {
+        return $this->belongsTo(Seller::class, 'referred_by');
     }
 }
