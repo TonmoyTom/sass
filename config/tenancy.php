@@ -197,7 +197,10 @@ return [
      */
     'migration_parameters' => [
         '--force' => true, // This needs to be true to run migrations in production.
-        '--path' => [database_path('migrations/tenant')],
+        '--path' => [
+            database_path('migrations/tenant'),
+            base_path('Modules/LMS/database/migrations/tenant'),   // ← add koro
+        ],
         '--realpath' => true,
     ],
 

@@ -2,8 +2,12 @@
 
 namespace Modules\LMS\Providers;
 
-use Nwidart\Modules\Support\ModuleServiceProvider;
+use App\Services\AI\ToolRegistry;
 use Illuminate\Console\Scheduling\Schedule;
+use Inertia\Inertia;
+use Modules\LMS\Classes\AI\LmsToolProvider;
+use Nwidart\Modules\Facades\Module;
+use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class LMSServiceProvider extends ModuleServiceProvider
 {
@@ -36,11 +40,23 @@ class LMSServiceProvider extends ModuleServiceProvider
 
     /**
      * Define module schedules.
-     * 
-     * @param $schedule
+     *
+     * @param  $schedule
      */
     // protected function configureSchedules(Schedule $schedule): void
     // {
     //     $schedule->command('inspire')->hourly();
     // }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        // Inertia root view — module-e alada view lagbe na, main app-er 'app' view-i use hobe
+        Inertia::setRootView('app');
+        if (Module::has('LMS') && Module::find('LMS')?->isEnabled()) {
+            app(ToolRegistry::class)
+                ->register(new LmsToolProvider);
+        }
+    }
 }

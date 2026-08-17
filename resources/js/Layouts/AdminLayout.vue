@@ -1,6 +1,7 @@
 <template>
     <Head :title="pageTitle" />
     <div class="min-h-screen xl:flex">
+      <AiChat/>
         <ImpersonationBanner />
 
         <AppSidebar />
@@ -27,6 +28,7 @@ import AppHeader from '../Components/ui/AppHeader.vue';
 import AppSidebar from '../Components/ui/AppSidebar.vue';
 import Backdrop from '../Components/ui/Backdrop.vue';
 import { useSidebar } from '../composables/useSidebar.js';
+import AiChat from '@/Components/ai/AiChat.vue';
 
 const props = defineProps({
     title: {

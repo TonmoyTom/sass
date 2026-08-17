@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\TenantModuleUsageController;
 use App\Http\Controllers\Admin\WithdrawRequestController;
+use App\Http\Controllers\AiController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\CentralSitemapController;
 use App\Http\Controllers\NotificationController;
@@ -64,6 +65,7 @@ Route::domain('myapp.test')->group(function () {
     // ─────────────────────────────────────────────
 
     Route::get('/', function () {
+
         $setting = SiteSetting::where('page_key', 'home')->with('seo')->first();
 
         return Inertia::render('Welcome', [
@@ -77,6 +79,11 @@ Route::domain('myapp.test')->group(function () {
             ],
         ]);
     })->name('home');
+
+
+     Route::get('/php', function () {
+          
+    })->name('php');
 
     Route::get('/pricing', function () {
         return Inertia::render('Public/Pricing');
@@ -160,7 +167,7 @@ Route::domain('myapp.test')->group(function () {
         ->prefix('admin')
         ->name('admin.')
         ->group(function () {
-
+            Route::post('/chat', [AiController::class, 'chat']);
             // Dashboard
             Route::get('/dashboard', [DashboardController::class, 'index'])
                 ->name('dashboard');

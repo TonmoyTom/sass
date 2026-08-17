@@ -43,4 +43,10 @@ return [
         ],
     ],
 
+    'ollama' => [
+        'key' => env('OLLAMA_API_KEY'),
+        'base_url' => env('OLLAMA_BASE_URL'),
+        'model' => env('OLLAMA_DEFAULT_MODEL', 'gpt-oss:20b-cloud'),
+    ],
+
 ];

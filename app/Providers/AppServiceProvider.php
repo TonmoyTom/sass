@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Enums\UserType;
 use App\Models\CompanySetting;
 use App\Models\User;
+use App\Services\AI\Contracts\AdminToolProvider;
+use App\Services\AI\ToolRegistry;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
@@ -17,7 +19,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ToolRegistry::class, function () {
+            $registry = new ToolRegistry;
+            $registry->registerAdmin(new AdminToolProvider);
+
+            return $registry;
+        });
     }
 
     /**

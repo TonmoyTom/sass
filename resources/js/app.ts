@@ -1,12 +1,12 @@
-import './echo.js'; 
 import '../css/app.css';
 import '../js/bootstrap';
+import './echo.js';
 
 import { createInertiaApp, router } from '@inertiajs/vue3';
+import { configureEcho } from '@laravel/echo-vue';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, DefineComponent, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
-import { configureEcho } from '@laravel/echo-vue';
 
 configureEcho({
     broadcaster: 'reverb',
@@ -55,11 +55,24 @@ router.on('finish', () => {
 
 createInertiaApp({
     title: (title) => `${title}`,
-    resolve: (name) =>
-        resolvePageComponent(
+    resolve: (name) => {
+        if (name.includes('::')) {
+            const [module, page] = name.split('::');
+
+            return resolvePageComponent(
+                `/Modules/${module}/resources/js/Pages/${page}.vue`,
+                import.meta.glob<DefineComponent>(
+                    '/Modules/*/resources/js/Pages/**/*.vue',
+                ),
+            );
+        }
+
+        // Normal app page
+        return resolvePageComponent(
             `./Pages/${name}.vue`,
             import.meta.glob<DefineComponent>('./Pages/**/*.vue'),
-        ),
+        );
+    },
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
@@ -67,4 +80,5 @@ createInertiaApp({
             .mount(el);
     },
     progress: false, // built-in off — amader custom loader
+    dev: import.meta.env.DEV,
 });

@@ -1,8 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\LMS\Http\Controllers\LMSController;
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::resource('lms', LMSController::class)->names('lms');
+Route::middleware(['auth', 'verified'])->prefix('lms')->name('lms.')->group(function () {
+    Route::get('/dashboard', function () {
+        return response()->json([
+            'user' => auth()->user(),
+            'session_id' => session()->getId(),
+        ]);
+    });
+
 });

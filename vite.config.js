@@ -13,8 +13,13 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.ts',
             ],
-            ssr: 'resources/js/ssr.ts', 
-            refresh: true,
+            ssr: 'resources/js/ssr.ts',
+            refresh: [
+                'resources/**',
+                'Modules/**/resources/**',   // ← module page change korle o hot-reload hobe
+                'routes/**',
+                'Modules/**/routes/**',
+            ],
         }),
         vue({
             template: {
@@ -31,6 +36,7 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, 'resources/js'),
             '~': path.resolve(__dirname, 'resources/sass'),
+            '@modules': path.resolve(__dirname, 'Modules'),   // ← notun, module page-e import shortcut-er jonno (optional)
         },
     },
 

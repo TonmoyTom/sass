@@ -390,7 +390,14 @@ const allModuleGroups = {
         icon: 'book',
         // permission: 'lms.view',
         items: [
-            { href: '/lms/dashboard', label: 'Dashboard', icon: 'dashboard' },
+            {
+                href: '/lms/dashboard',
+                label: 'Dashboard',
+                icon: 'dashboard',
+                //  permission: 'settings.view',
+            },
+            { href: '/lms/categories', label: 'Category', icon: 'book' },
+            { href: '/lms/subcategories', label: 'Sub-Category', icon: 'book' },
             { href: '/lms/courses', label: 'Courses', icon: 'book' },
             { href: '/lms/enrollments', label: 'Enrollments', icon: 'user' },
             { href: '/lms/quizzes', label: 'Quizzes', icon: 'box' },
