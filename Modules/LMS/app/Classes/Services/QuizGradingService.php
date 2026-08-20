@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\LMS\Services;
+namespace Modules\LMS\Classes\Services;
 
 use App\Models\TenantUser;
 use Illuminate\Support\Facades\DB;

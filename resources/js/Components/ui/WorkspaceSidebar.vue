@@ -63,7 +63,7 @@
                             v-if="!item.subItems"
                             :href="item.href"
                             :label="item.label"
-                            :icon="item.icon"
+                            :icon="icons[item.icon]"
                             :active="isActive(item.href)"
                             :collapsed="collapsed"
                         />
@@ -172,7 +172,7 @@
                         :key="item.href"
                         :href="item.href"
                         :label="item.label"
-                        :icon="item.icon"
+                        :icon="icons[item.icon]"
                         :active="isActive(item.href)"
                         :collapsed="collapsed"
                     />
@@ -196,8 +196,9 @@ import {
     ShoppingCart,
     Store,
     User,
+    LayoutGrid
 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, watchEffect } from 'vue';
 import { useSidebar } from '../../composables/useSidebar.js';
 import SidebarLink from './SidebarLink.vue';
 
@@ -360,11 +361,16 @@ watch(
 /**
  * Module group definitions — object KEY-i module slug.
  * proti module group-e 'permission' key add kora holo (optional).
+ * 'routePrefix' — actual URL prefix for this module. Slug (object key)
+ * and URL prefix aren't always the same string (e.g. slug
+ * 'learning-system-management' but routes live under '/lms'), so the
+ * active-module watcher below needs this to match correctly.
  */
 const allModuleGroups = {
     eccomarce: {
         label: 'E-commerce',
         icon: 'cart',
+        routePrefix: '/ecommerce',
         // permission: 'ecommerce.view',
         items: [
             {
@@ -379,6 +385,7 @@ const allModuleGroups = {
     pos: {
         label: 'POS',
         icon: 'register',
+        routePrefix: '/pos',
         // permission: 'pos.view',
         items: [
             { href: '/pos/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -388,20 +395,24 @@ const allModuleGroups = {
     'learning-system-management': {
         label: 'LMS',
         icon: 'book',
+        routePrefix: '/lms',
         // permission: 'lms.view',
         items: [
-            {
-                href: '/lms/dashboard',
-                label: 'Dashboard',
-                icon: 'dashboard',
-                //  permission: 'settings.view',
-            },
-            { href: '/lms/categories', label: 'Category', icon: 'book' },
-            { href: '/lms/subcategories', label: 'Sub-Category', icon: 'book' },
-            { href: '/lms/courses', label: 'Courses', icon: 'book' },
-            { href: '/lms/enrollments', label: 'Enrollments', icon: 'user' },
-            { href: '/lms/quizzes', label: 'Quizzes', icon: 'box' },
-            { href: '/lms/assignments', label: 'Assignments', icon: 'bag' },
+            // {
+            //     href: '/lms/dashboard',
+            //     label: 'Dashboard',
+            //     icon: 'dashboard',
+            //       permission: 'settings.view',
+            // },
+            { href: '/lms/instructors', label: 'Instructors', icon: 'user', permission: 'instructors.view' },
+            { href: '/lms/categories', label: 'Category', icon: 'book', permission: 'categories.view' },
+            { href: '/lms/subcategories', label: 'Sub-Category', icon: 'book', permission: 'subcategories.view' },
+            { href: '/lms/courses', label: 'Courses', icon: 'book', permission: 'courses.view' },
+
+            { href: '/lms/quizzes', label: 'Quizzes', icon: 'box', permission: 'quizzes.view' },
+            { href: '/lms/assignments', label: 'Assignments', icon: 'bag', permission: 'assignments.view' },
+            { href: '/lms/my-courses', label: 'My Courses', icon: 'book', permission: 'lms.my-courses.view' },
+            { href: '/lms/my-orders', label: 'My Orders', icon: 'cart', permission: 'lms.my-orders.view' },
         ],
     },
 };
@@ -429,21 +440,29 @@ const currentModule = computed(() => {
 
 const companyLogo = computed(() => page.props.workspace?.logo_url ?? null);
 
-watch(
-    () => page.url,
-    (url) => {
-        const match = Object.keys(allModuleGroups).find(
-            (k) => url.startsWith('/' + k + '/') || url.startsWith('/' + k),
-        );
-        if (match && enabledModules.value.includes(match)) {
-            activeModule.value = match;
-        }
-    },
-    { immediate: true },
-);
+// auto-drill-down: jodi direct URL-e LMS/E-commerce/POS-er kono page
+// (edit/detail shoho) load hoy, sidebar-o oi module-er submenu-e thakbe.
+// slug (object key) diye na, routePrefix diye match kora hocche — karon
+// 'learning-system-management' slug-er actual URL '/lms', dutoi ek na.
+//
+// watchEffect (watch(url) na) — karon enabledModules prop kichuta deri
+// kore load hote pare; watch(url) shudu url change-e re-run hoto, tai
+// prothom immediate run-e enabledModules khali thakle activeModule
+// chirokal null e atke thakto. watchEffect url o enabledModules dutoi
+// track kore, jekono ekta bodlale abar check kore.
+watchEffect(() => {
+    const url = page.url;
+    const match = Object.keys(allModuleGroups).find((k) => {
+        const prefix = allModuleGroups[k].routePrefix ?? '/' + k;
+        return url === prefix || url.startsWith(prefix + '/');
+    });
+    if (match && enabledModules.value.includes(match)) {
+        activeModule.value = match;
+    }
+});
 
 const icons = {
-    dashboard: LayoutDashboard,
+    dashboard: LayoutGrid,
     user: User,
     shield: Shield,
     settings: Settings,

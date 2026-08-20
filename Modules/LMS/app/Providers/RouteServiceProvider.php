@@ -42,7 +42,7 @@ class RouteServiceProvider extends ServiceProvider
                 InitializeTenancyByDomain::class,
                 PreventAccessFromCentralDomains::class,
                 SetTenantAuthGuard::class,
-                'auth:tenant',
+                // 'auth:tenant',
             ])
             ->group(module_path($this->name, '/routes/tenant.php'));
     }

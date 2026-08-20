@@ -11,6 +11,10 @@ class LMSDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->command?->info('LMSDatabaseSeeder START');
+
+        $this->call(LmsPermissionSeeder::class);
+
+        $this->command?->info('LmsPermissionSeeder DONE');
     }
 }

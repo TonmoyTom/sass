@@ -7,6 +7,7 @@ use App\Models\CompanySetting;
 use App\Models\User;
 use App\Services\AI\Contracts\AdminToolProvider;
 use App\Services\AI\ToolRegistry;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
@@ -22,7 +23,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ToolRegistry::class, function () {
             $registry = new ToolRegistry;
             $registry->registerAdmin(new AdminToolProvider);
-
             return $registry;
         });
     }
@@ -32,10 +32,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        DevCommands::artisan('serve --host=0.0.0.0 --port=8000', 'server');
+        DevCommands::artisan('reverb:start --host=0.0.0.0 --port=8081', 'reverb');
+
         Vite::prefetch(concurrency: 3);
+
         View::composer('app', function ($view) {
             $favicon = CompanySetting::first()?->favicon_url;
-
             $view->with('companyFavicon', $favicon ?: '/favicon.png');
         });
 

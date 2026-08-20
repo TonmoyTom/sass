@@ -10,6 +10,11 @@ use Modules\LMS\Models\CourseModule;
 
 class CourseModuleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:lessons.manage');
+    }
+    
     public function store(Request $request,string $tenant,  Course $course): RedirectResponse
     {
      

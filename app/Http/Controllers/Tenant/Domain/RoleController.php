@@ -50,10 +50,12 @@ class RoleController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(string $tenant): Response
     {
+       $tenant = tenant('id');
         return Inertia::render('Tenant/Domain/Roles/Create', [
             'permissionGroups' => $this->groupedPermissions(),
+            'moduleOptions' => $this->moduleOptions($tenant),
         ]);
     }
 
@@ -63,10 +65,13 @@ class RoleController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
             'permissions' => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
+            'modules' => ['array'],
+            'modules.*' => ['string'],
         ]);
 
         $role = Role::create(['name' => $data['name'], 'guard_name' => 'tenant']);
         $role->syncPermissions($data['permissions'] ?? []);
+        $role->syncModules($data['modules'] ?? []);
 
         $this->clearRoleRelatedCache($tenant);
 
@@ -75,13 +80,16 @@ class RoleController extends Controller
 
     public function edit(string $tenant, Role $role): Response
     {
+         $tenant = tenant('id');
         return Inertia::render('Tenant/Domain/Roles/Edit', [
             'role' => [
                 'id' => $role->id,
                 'name' => $role->name,
                 'permissions' => $role->permissions->pluck('name'),
+                'modules' => $role->grantedModuleAliases(),
             ],
             'permissionGroups' => $this->groupedPermissions(),
+            'moduleOptions' => $this->moduleOptions($tenant),
         ]);
     }
 
@@ -91,10 +99,13 @@ class RoleController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->ignore($role->id)],
             'permissions' => ['array'],
             'permissions.*' => ['string', 'exists:permissions,name'],
+            'modules' => ['array'],
+            'modules.*' => ['string'],
         ]);
 
         $role->update(['name' => $data['name']]);
         $role->syncPermissions($data['permissions'] ?? []);
+        $role->syncModules($data['modules'] ?? []);
 
         $this->clearRoleRelatedCache($tenant);
 
@@ -112,6 +123,18 @@ class RoleController extends Controller
         $this->clearRoleRelatedCache($tenant);
 
         return redirect('/roles')->with('status', 'Role deleted');
+    }
+
+    /**
+     * Modules a role could plausibly be granted — the tenant's own
+     * purchased/enabled modules. No point offering a module the tenant
+     * doesn't even have.
+     */
+    private function moduleOptions(string $tenant): array
+    {
+        $t = \App\Models\Tenant::on('mysql')->find($tenant);
+
+        return $t?->enabledModules() ?? [];
     }
 
     private function clearRoleRelatedCache(string $tenant): void

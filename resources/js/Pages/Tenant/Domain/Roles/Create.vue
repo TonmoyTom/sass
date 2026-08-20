@@ -42,6 +42,44 @@
                     />
                 </section>
 
+                <!-- modules -->
+                <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+                    <h5 class="font-semibold text-gray-800 dark:text-white/90">
+                        Modules
+                    </h5>
+                    <p class="mt-0.5 text-xs text-gray-400">
+                        Which purchased modules can users with this role access?
+                    </p>
+
+                    <div v-if="moduleOptions.length" class="mt-4 flex flex-wrap gap-2">
+                        <label
+                            v-for="module in moduleOptions"
+                            :key="module"
+                            class="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm capitalize transition"
+                            :class="
+                                form.modules.includes(module)
+                                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-500/10 dark:text-brand-400'
+                                    : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]'
+                            "
+                        >
+                            <input
+                                v-model="form.modules"
+                                type="checkbox"
+                                :value="module"
+                                class="text-brand-500 focus:ring-brand-500/20 h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                            />
+                            {{ module }}
+                        </label>
+                    </div>
+                    <p v-else class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                        This workspace hasn't purchased any modules yet.
+                    </p>
+
+                    <p v-if="form.errors.modules" class="mt-3 text-sm text-red-500">
+                        {{ form.errors.modules }}
+                    </p>
+                </section>
+
                 <!-- permissions -->
                 <section class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
                     <div class="mb-4 flex items-center justify-between">
@@ -146,11 +184,16 @@ import { computed } from 'vue';
 
 const props = defineProps({
     permissionGroups: Array,
+    moduleOptions: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const form = useForm({
     name: '',
     permissions: [],
+    modules: [],
 });
 
 const isGroupAllSelected = (group) =>

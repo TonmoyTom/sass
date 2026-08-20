@@ -13,12 +13,17 @@ use App\Models\WalletTransaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Modules\LMS\Database\Seeders\LmsPermissionSeeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class PurchaseService
 {
+    protected array $moduleSeeders = [
+        'learning-system-management' => LmsPermissionSeeder::class,
+    ];
+
     public function __construct(
         protected ProrationService $proration
     ) {}
@@ -182,91 +187,188 @@ class PurchaseService
     /**
      * Purchase kora module-er jonno permission create + tenant owner-er role-e assign koro.
      */
-    protected function syncModulePermissions(Tenant $tenant, array $moduleAliases): void
-    {
+    protected function syncModulePermissions(
+        Tenant $tenant,
+        array $moduleAliases
+    ): void {
         if (empty($moduleAliases)) {
             return;
         }
+
         $permissionsByPrefix = [
             'ecommerce' => [
                 'ecommerce.view',
             ],
+
             'pos' => [
                 'pos.view',
             ],
-            'lms' => [
+
+            'learning-system-management' => [
                 'lms.view',
             ],
         ];
 
-        $allPermissionNames = [];
-
-        foreach ($moduleAliases as $alias) {
-            $prefix = $this->permissionPrefix($alias);
-
-            if ($prefix && isset($permissionsByPrefix[$prefix])) {
-                $allPermissionNames = array_merge($allPermissionNames, $permissionsByPrefix[$prefix]);
-            }
-        }
-
-        if (empty($allPermissionNames)) {
-            return;
-        }
-
-        $allPermissionNames = array_unique($allPermissionNames);
         $wasAlreadyInitialized = tenancy()->initialized;
-        $previousTenant = $wasAlreadyInitialized ? tenant() : null;
+
+        $previousTenant = $wasAlreadyInitialized
+            ? tenant()
+            : null;
 
         try {
-            // shudhu jodi already ei tenant-e active na thaki, tobei initialize kori
-            if (! $wasAlreadyInitialized || tenant('id') !== $tenant->id) {
+            /*
+             * Make sure we are inside the purchased tenant.
+             */
+            if (
+                ! $wasAlreadyInitialized
+                || tenant('id') !== $tenant->id
+            ) {
                 tenancy()->initialize($tenant);
             }
 
+            $allPermissionNames = [];
+
+            foreach (array_unique($moduleAliases) as $alias) {
+                /*
+                 * Convert module alias to permission prefix.
+                 */
+                $prefix = $this->permissionPrefix($alias);
+
+               
+                if (
+                    $prefix
+                    && isset($this->moduleSeeders[$prefix])
+                ) {
+                    $seederClass = $this->moduleSeeders[$prefix];
+
+                    $this->commandInfo(
+                        "Running {$seederClass} for tenant {$tenant->id}"
+                    );
+
+                    app($seederClass)->run();
+
+                    $this->commandInfo(
+                        "{$seederClass} completed"
+                    );
+                }
+
+                /*
+                 * Basic module permission.
+                 */
+                if (
+                    $prefix
+                    && isset($permissionsByPrefix[$prefix])
+                ) {
+                    $allPermissionNames = array_merge(
+                        $allPermissionNames,
+                        $permissionsByPrefix[$prefix]
+                    );
+                }
+            }
+
+            $allPermissionNames = array_values(
+                array_unique($allPermissionNames)
+            );
+
+            /*
+             * Create basic module permissions.
+             *
+             * Module-specific permissions have already been
+             * created by their respective seeders.
+             */
             $createdPermissions = [];
 
-            foreach ($allPermissionNames as $permName) {
-                $createdPermissions[] = Permission::firstOrCreate([
-                    'name' => $permName,
-                    'guard_name' => 'tenant',
-                ]);
+            foreach ($allPermissionNames as $permissionName) {
+                $createdPermissions[] = Permission::firstOrCreate(
+                    [
+                        'name' => $permissionName,
+                        'guard_name' => 'tenant',
+                    ]
+                );
             }
 
-            $ownerRole = Role::where('guard_name', 'tenant')
-                ->whereIn('name', ['Super admin', 'Admin', 'Owner'])
+            /*
+             * Find tenant owner/admin role.
+             */
+            $ownerRole = Role::query()
+                ->where('guard_name', 'tenant')
+                ->whereIn(
+                    'name',
+                    [
+                        'Super Admin',
+                        'Super admin',
+                        'Admin',
+                        'Owner',
+                    ]
+                )
                 ->first();
 
-            if ($ownerRole) {
-                $ownerRole->givePermissionTo($createdPermissions);
+            if (
+                $ownerRole
+                && ! empty($createdPermissions)
+            ) {
+                $ownerRole->givePermissionTo(
+                    $createdPermissions
+                );
             }
 
-            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            /*
+             * Clear Spatie permission cache.
+             */
+            app(PermissionRegistrar::class)
+                ->forgetCachedPermissions();
 
-            Cache::forget("share:workspace:{$tenant->id}");
+            Cache::forget(
+                "share:workspace:{$tenant->id}"
+            );
         } catch (\Throwable $e) {
-            report($e); // permission sync fail hole o purchase flow break na hok
+            /*
+             * Permission/seeder failure should not
+             * rollback an already completed purchase.
+             */
+            report($e);
         } finally {
-            // amra nijei initialize korle, amra e cleanup kori
+            /*
+             * Restore previous tenant context.
+             */
             if (! $wasAlreadyInitialized) {
                 tenancy()->end();
-            } elseif ($previousTenant && tenant('id') !== $previousTenant->id) {
+            } elseif (
+                $previousTenant
+                && tenant('id') !== $previousTenant->id
+            ) {
                 tenancy()->initialize($previousTenant);
             }
         }
     }
 
-    protected function permissionPrefix(string $moduleAlias): ?string
-    {
+    /**
+     * Convert module alias to permission prefix.
+     */
+    protected function permissionPrefix(
+        string $moduleAlias
+    ): ?string {
         return match ($moduleAlias) {
-            'eccomarce', 'e-commerce', 'ecommerce' => 'ecommerce',
+            'eccomarce',
+            'e-commerce',
+            'ecommerce' => 'ecommerce',
+
             'pos' => 'pos',
             'learning-system-management' => 'lms',
+
             default => null,
         };
     }
 
-    protected function cycleExpiry(string $cycle): ?Carbon
+    protected function commandInfo(string $message): void
     {
+
+        logger()->info($message);
+    }
+
+    protected function cycleExpiry(
+        string $cycle
+    ): ?Carbon {
         return match ($cycle) {
             'yearly' => now()->addYear(),
             'monthly' => now()->addMonth(),

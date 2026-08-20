@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Tenant\Domain;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\TenantUser;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,22 @@ class NotificationController extends Controller
         });
     }
 
+    protected function resolveTenantSenderDisplay(?int $senderId): array
+    {
+        if (! $senderId) {
+            return ['System', null];
+        }
+
+        $sender = TenantUser::find($senderId);
+
+        if (! $sender) {
+            return ['System', null];
+        }
+
+
+        return [$sender->name, $sender->avatar_url ?? null];
+    }
+
     protected function mergedNotifications()
     {
         // 1. Tenant DB notification — logged-in tenant user
@@ -94,6 +111,8 @@ class NotificationController extends Controller
 
                     if ($isFromAdmin && $senderId) {
                         [$displayName, $displayAvatar] = $this->resolveSenderDisplay($senderId);
+                    } elseif ($senderId) {
+                        [$displayName, $displayAvatar] = $this->resolveTenantSenderDisplay($senderId);
                     } else {
                         $displayName = $tenantUser->name;
                         $displayAvatar = $tenantUser->avatar_url ?? null;
@@ -127,6 +146,7 @@ class NotificationController extends Controller
                 $avatarUrl = $owner->avatar
                     ? Storage::disk('public')->url($owner->avatar)
                     : null;
+
                 return $owner->notifications()
                     ->latest()
                     ->take(20)
@@ -134,6 +154,7 @@ class NotificationController extends Controller
                     ->map(function ($n) use ($avatarUrl) {
                         $senderId = $n->data['sender_id'] ?? null;
                         $sender = $senderId ? User::find($senderId) : null;
+
                         return [
                             'id' => $n->id,
                             'source' => 'central',

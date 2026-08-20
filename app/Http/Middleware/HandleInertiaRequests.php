@@ -77,31 +77,63 @@ class HandleInertiaRequests extends Middleware
     }
 
     protected function workspace(): ?array
-    {
-        if (! tenant()) {
-            return null;
-        }
-        $tenantId = tenant('id');
-
-        return Cache::remember(
-            "share:workspace:{$tenantId}",
-            now()->addMinutes(15),
-            function () use ($tenantId) {
-                $t = Tenant::on('mysql')->find($tenantId);
-                $settings = CompanySetting::select('company_name', 'logo')
-                    ->first();
-
-                return [
-                    'tenant' => [
-                        'id' => $tenantId,
-                    ],
-                    'company_name' => $settings->company_name ?? 'Workspace',
-                    'logo_url' => $settings->logo_url,
-                    'enabled_modules' => $t?->enabledModules() ?? [],
-                ];
+        {
+            if (! tenant()) {
+                return null;
             }
-        );
-    }
+     
+            $tenantId = tenant('id');
+     
+            // Only tenant-wide, role-independent data is cached here — company
+            // branding and the tenant's purchased module list rarely change and
+            // are the same for every user. Anything permission-sensitive (who
+            // can see which module) is computed fresh below, every request, so
+            // a role/permission change takes effect immediately instead of
+            // waiting out a stale cache and never being served to the wrong user.
+            $tenantWide = Cache::remember(
+                "share:workspace:{$tenantId}",
+                now()->addMinutes(15),
+                function () use ($tenantId) {
+                    $t = Tenant::on('mysql')->find($tenantId);
+                    $settings = CompanySetting::select('company_name', 'logo')
+                        ->first();
+     
+                    return [
+                        'tenant' => [
+                            'id' => $tenantId,
+                        ],
+                        'company_name' => $settings->company_name ?? 'Workspace',
+                        'logo_url' => $settings->logo_url,
+                        'purchased_modules' => $t?->enabledModules() ?? [],
+                    ];
+                }
+            );
+     
+            $user = auth('tenant')->user();
+            $isSuperAdmin = $user?->roles?->contains('id', 1) ?? false;
+     
+            if ($isSuperAdmin) {
+                // Super Admin always sees everything the tenant owns.
+                $accessibleModules = $tenantWide['purchased_modules'];
+            } elseif ($user) {
+                $grantedModules = $user->roles->load('moduleGrants')
+                    ->flatMap(fn ($role) => $role->grantedModuleAliases())
+                    ->unique()
+                    ->all();
+     
+                $accessibleModules = array_values(array_intersect($tenantWide['purchased_modules'], $grantedModules));
+            } else {
+                $accessibleModules = [];
+            }
+     
+            return [
+                'tenant' => $tenantWide['tenant'],
+                'company_name' => $tenantWide['company_name'],
+                'logo_url' => $tenantWide['logo_url'],
+                'enabled_modules' => $accessibleModules,
+                'user' => $user
+            ];
+        }
 
     /**
      * Central platform's own company branding — shudhu tenant() null hole (central context)

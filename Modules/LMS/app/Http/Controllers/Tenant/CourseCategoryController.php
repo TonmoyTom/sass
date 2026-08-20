@@ -11,6 +11,15 @@ use Modules\LMS\Models\CourseCategory;
 
 class CourseCategoryController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('can:categories.view')->only(['index']);
+        $this->middleware('can:categories.create')->only(['store']);
+        $this->middleware('can:categories.edit')->only(['update']);
+        $this->middleware('can:categories.delete')->only(['destroy']);
+    }
+        
     public function index(Request $request): Response
     {
         $categories = CourseCategory::query()

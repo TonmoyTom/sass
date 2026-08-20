@@ -1,7 +1,8 @@
 <?php
 
-namespace Modules\LMS\Services;
+namespace Modules\LMS\Classes\Services;
 
+use App\Events\NotificationSent;
 use App\Models\TenantUser;
 use Illuminate\Support\Facades\DB;
 use Modules\LMS\Models\Course;
@@ -27,7 +28,7 @@ class CourseEnrollmentService
             throw new \RuntimeException('Already enrolled in this course.');
         }
 
-        return DB::transaction(function () use ($course, $student, $paymentMethod, $transactionId) {
+        $enrollment = DB::transaction(function () use ($course, $student, $paymentMethod, $transactionId) {
             $amount = $course->is_free ? 0 : $course->price;
 
             $order = CourseOrder::create([
@@ -40,16 +41,52 @@ class CourseEnrollmentService
                 'purchased_at' => now(),
             ]);
 
-            $enrollment = Enrollment::create([
+            return Enrollment::create([
                 'course_id' => $course->id,
                 'student_id' => $student->id,
                 'order_id' => $order->id,
                 'status' => 'active',
                 'enrolled_at' => now(),
             ]);
-
-            return $enrollment;
         });
+
+        // notification kept outside the transaction on purpose — a
+        // notify() failure (future email channel etc.) shouldn't be able
+        // to roll back an otherwise-successful enrollment.
+        $this->notifyAdminAndInstructors($course, $student, $course->is_free ? 0 : $course->price);
+
+        return $enrollment;
+    }
+
+    /**
+     * Course purchase/enrollment (free ba paid) hole, Super Admin + oi
+     * course-er instructor-der notify koro.
+     */
+    protected function notifyAdminAndInstructors(Course $course, TenantUser $student, float $amount): void
+    {
+        $instructorIds = $course->instructors()->pluck('users.id')
+            ->push($course->instructor_id)
+            ->filter();
+
+        $adminIds = TenantUser::role('Super Admin')->pluck('id');
+
+        $recipientIds = $instructorIds->concat($adminIds)->unique();
+
+        $recipients = TenantUser::whereIn('id', $recipientIds)->get();
+
+        $message = $amount > 0
+            ? "{$student->name} purchased \"{$course->title}\" for ৳".number_format($amount)
+            : "{$student->name} enrolled in \"{$course->title}\" (free)";
+
+        foreach ($recipients as $recipient) {
+            NotificationSent::dispatch(
+                $message,
+                $recipient->id,
+                'success',
+                "/lms/courses/{$course->id}/edit",
+                $student->id,
+            );
+        }
     }
 
     /**

@@ -12,6 +12,15 @@ use Modules\LMS\Models\CourseSubcategory;
 
 class CourseSubcategoryController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('can:subcategories.view')->only(['index']);
+        $this->middleware('can:subcategories.create')->only(['store']);
+        $this->middleware('can:subcategories.edit')->only(['update']);
+        $this->middleware('can:subcategories.delete')->only(['destroy']);
+    }
+        
     public function index(Request $request): Response
     {
         $subcategories = CourseSubcategory::query()

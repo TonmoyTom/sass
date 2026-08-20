@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\LMS\Services;
+namespace Modules\LMS\Classes\Services;
 
 use Modules\LMS\Models\Enrollment;
 use Modules\LMS\Models\Lesson;
@@ -18,10 +18,12 @@ class LessonAccessService
             return true;
         }
 
+
         // enroll na thakle, paid content-e access nai
-        if (! $enrollment || $enrollment->status !== 'active') {
-            return false;
+        if (! $enrollment || $enrollment->status === 'cancelled') {
+                   return false;
         }
+
 
         return $this->isUnlocked($lesson, $enrollment);
     }
@@ -31,6 +33,17 @@ class LessonAccessService
      */
     public function isUnlocked(Lesson $lesson, Enrollment $enrollment): bool
     {
+        // already completed this lesson — never re-lock something the
+        // student has finished, even if requires_completion settings
+        // changed afterwards or the chain looks odd for some edge case.
+        $ownProgress = LessonProgress::where('enrollment_id', $enrollment->id)
+            ->where('lesson_id', $lesson->id)
+            ->first();
+
+        if ($ownProgress?->isFullyComplete()) {
+            return true;
+        }
+
         $previousLesson = Lesson::where('course_module_id', $lesson->course_module_id)
             ->where('sort_order', '<', $lesson->sort_order)
             ->orderByDesc('sort_order')
@@ -66,28 +79,38 @@ class LessonAccessService
         return $progress?->isFullyComplete() ?? false;
     }
 
-    /**
-     * Video progress update koro.
-     */
-    public function updateVideoProgress(Enrollment $enrollment, Lesson $lesson, int $watchedSeconds): LessonProgress
-    {
-        $progress = LessonProgress::firstOrCreate(
-            ['enrollment_id' => $enrollment->id, 'lesson_id' => $lesson->id]
-        );
 
-        $isCompleted = $lesson->video_duration_minutes
-            ? $watchedSeconds >= ($lesson->video_duration_minutes * 60 * 0.9) // 90% dekhle completed dhori
-            : false;
+     public function updateVideoProgress(Enrollment $enrollment, Lesson $lesson, int $watchedSeconds, ?int $durationSeconds = null): LessonProgress
 
-        $progress->update([
-            'video_watched_seconds' => max($progress->video_watched_seconds, $watchedSeconds),
-            'video_completed' => $progress->video_completed || $isCompleted,
-        ]);
+         {
 
-        $this->checkCourseCompletion($enrollment);
+             $progress = LessonProgress::firstOrCreate(
 
-        return $progress;
-    }
+                 ['enrollment_id' => $enrollment->id, 'lesson_id' => $lesson->id]
+
+             );
+
+             $totalSeconds = $durationSeconds ?: ($lesson->video_duration_minutes ? $lesson->video_duration_minutes * 60 : null);
+
+             $isCompleted = $totalSeconds
+
+                 ? $watchedSeconds >= ($totalSeconds * 0.5) //
+
+                 : false;
+
+             $progress->update([
+
+                 'video_watched_seconds' => max($progress->video_watched_seconds, $watchedSeconds),
+
+                 'video_completed' => $progress->video_completed || $isCompleted,
+
+             ]);
+
+             $this->checkCourseCompletion($enrollment);
+
+             return $progress;
+
+         }
 
     /**
      * Ebook "opened" mark koro.

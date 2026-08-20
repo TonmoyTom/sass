@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->string('first_name');
             $table->string('last_name');
-            $table->string('bio')->nullable();
+            $table->text('bio')->nullable();
             $table->string('country')->nullable();
             $table->string('city')->nullable();
             $table->string('postal_code')->nullable();

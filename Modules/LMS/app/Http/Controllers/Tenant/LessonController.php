@@ -12,6 +12,11 @@ use Modules\LMS\Models\Lesson;
 
 class LessonController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:lessons.manage');
+    }
+        
     public function store(Request $request, string $tenant, CourseModule $module, FileStorageService $storage): RedirectResponse
     {
         $data = $this->validateLesson($request);
@@ -88,6 +93,24 @@ class LessonController extends Controller
     public function detachQuiz(string $tenant, Lesson $lesson, int $quizId): JsonResponse
     {
         $lesson->quizzes()->detach($quizId);
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    public function attachAssignment(Request $request, string $tenant, Lesson $lesson): JsonResponse
+    {
+        $data = $request->validate([
+            'assignment_id' => ['required', 'exists:assignments,id'],
+        ]);
+
+        $lesson->assignments()->syncWithoutDetaching([$data['assignment_id']]);
+
+        return response()->json(['status' => 'ok']);
+    }
+    
+    public function detachAssignment(string $tenant, Lesson $lesson, int $assignmentId): JsonResponse
+    {
+        $lesson->assignments()->detach($assignmentId);
 
         return response()->json(['status' => 'ok']);
     }

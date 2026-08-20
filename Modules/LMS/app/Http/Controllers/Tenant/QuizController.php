@@ -11,6 +11,13 @@ use Modules\LMS\Models\Quiz;
 
 class QuizController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware('can:quizzes.view')->only(['index', 'search']);
+        $this->middleware('can:quizzes.create')->only(['create', 'store']);
+        $this->middleware('can:quizzes.edit')->only(['edit', 'update']);
+    }
     public function index(Request $request): Response
     {
         $quizzes = Quiz::query()
